@@ -38,12 +38,13 @@ def ventas_en_punto():
 
     if request.method == 'POST':
         seleccionados = request.form.getlist('productos')
-    # Guardar los productos seleccionados en un archivo CSV
-    with open('ventas.csv', mode='a', newline='', encoding='utf-8') as archivo:
-        escritor = csv.writer(archivo)
-        fecha = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        for producto in seleccionados:
-            escritor.writerow([fecha, session.get('usuario'), producto])
+
+        # Guardar los productos seleccionados en un archivo CSV
+        with open('ventas.csv', mode='a', newline='', encoding='utf-8') as archivo:
+            escritor = csv.writer(archivo)
+            fecha = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            for producto in seleccionados:
+                escritor.writerow([fecha, session.get('usuario'), producto])
 
         # Generar PDF con comanda
         buffer = BytesIO()
@@ -60,7 +61,9 @@ def ventas_en_punto():
         buffer.seek(0)
         return send_file(buffer, as_attachment=True, download_name="comanda.pdf", mimetype='application/pdf')
 
+    # Si es GET, solo renderiza la página
     return render_template('ventas.html', categorias=categorias)
+
 
 @app.route('/logout')
 def logout():
