@@ -1,1 +1,0 @@
-web: python version_check.py

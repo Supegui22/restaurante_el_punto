@@ -1,1 +1,23 @@
-<h2>Ventas en Punto</h2><p>Formulario para registrar ventas realizadas en el punto de venta.</p>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ventas en Punto - Restaurante el Punto</title>
+</head>
+<body>
+    <h1>Ventas en Punto</h1>
+    <h2>Categorías y Productos</h2>
+    <form method="POST">
+        {% for categoria, productos in categorias.items() %}
+            <h3>{{ categoria }}</h3>
+            {% for producto in productos %}
+                <input type="checkbox" name="productos" value="{{ producto }}"> {{ producto }}<br>
+            {% endfor %}
+        {% endfor %}
+
+        <h2>Acciones</h2>
+        <button type="submit">Enviar a Cocina</button>
+    </form>
+    <br>
+    <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+</body>
+</html>

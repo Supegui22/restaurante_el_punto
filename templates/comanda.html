@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comanda enviada a cocina</title>
+</head>
+<body>
+    <h1>Comanda</h1>
+    <p>Productos seleccionados:</p>
+    <ul>
+        {% for producto in productos %}
+            <li>{{ producto }}</li>
+        {% endfor %}
+    </ul>
+    <a href="{{ url_for('ventas_en_punto') }}">Volver a Ventas</a>
+</body>
+</html>
