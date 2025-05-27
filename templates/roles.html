@@ -1,14 +1,1 @@
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><title>Roles</title></head>
-<body>
-  <h2>Crear Rol</h2>
-  <form method="POST">
-    <input name="role_name" type="text" placeholder="Nombre del Rol" required><br>
-    {% for permiso in permisos %}
-      <input type="checkbox" name="permissions" value="{{ permiso.descripcion }}"> {{ permiso.descripcion }}<br>
-    {% endfor %}
-    <button type="submit">Crear Rol</button>
-  </form>
-</body>
-</html>
+<h2>Formulario de Roles</h2><p>Aquí el administrador podrá registrar roles y asignar funcionalidades.</p>
