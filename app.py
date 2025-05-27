@@ -1,3 +1,5 @@
+import csv
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 from io import BytesIO
 from reportlab.pdfgen import canvas
@@ -36,6 +38,13 @@ def ventas_en_punto():
 
     if request.method == 'POST':
         seleccionados = request.form.getlist('productos')
+    # Guardar los productos seleccionados en un archivo CSV
+    with open('ventas.csv', mode='a', newline='', encoding='utf-8') as archivo:
+        escritor = csv.writer(archivo)
+        fecha = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        for producto in seleccionados:
+            escritor.writerow([fecha, session.get('usuario'), producto])
+
         # Generar PDF con comanda
         buffer = BytesIO()
         p = canvas.Canvas(buffer)
