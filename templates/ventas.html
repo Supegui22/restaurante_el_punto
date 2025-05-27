@@ -2,22 +2,150 @@
 <html>
 <head>
     <title>Ventas en Punto - Restaurante el Punto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .producto {
+            cursor: pointer;
+            margin: 5px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: inline-block;
+            min-width: 150px;
+            text-align: center;
+            user-select: none;
+        }
+        #carrito {
+            margin-top: 20px;
+        }
+        #carrito table th, #carrito table td {
+            vertical-align: middle;
+        }
+        button.eliminar-btn {
+            color: white;
+            background-color: #dc3545;
+            border: none;
+            border-radius: 3px;
+            padding: 3px 8px;
+        }
+    </style>
 </head>
-<body>
+<body class="container py-4">
+
     <h1>Ventas en Punto</h1>
-    <h2>Categorías y Productos</h2>
-    <form method="POST">
+
+    <div id="productos">
         {% for categoria, productos in categorias.items() %}
             <h3>{{ categoria }}</h3>
-            {% for producto in productos %}
-                <input type="checkbox" name="productos" value="{{ producto }}"> {{ producto }}<br>
-            {% endfor %}
+            <div class="mb-3">
+                {% for producto in productos %}
+                    <div class="producto" onclick="agregarProducto('{{ producto.nombre }}', {{ producto.precio }})">
+                        <strong>{{ producto.nombre }}</strong><br>
+                        ${{ producto.precio.toLocaleString('es-CO') }}
+                    </div>
+                {% endfor %}
+            </div>
         {% endfor %}
+    </div>
 
-        <h2>Acciones</h2>
-        <button type="submit">Enviar a Cocina</button>
+    <h2>Carrito</h2>
+    <form id="formVenta" method="POST">
+        <div id="carrito">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                        <th>Eliminar</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCarrito">
+                    <!-- Productos agregados aquí -->
+                </tbody>
+            </table>
+            <div id="total" class="fs-4 fw-bold text-end">Total: $0</div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Enviar a Cocina</button>
     </form>
-    <br>
-    <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+
+<script>
+    const carrito = {};
+
+    function agregarProducto(nombre, precio) {
+        if(carrito[nombre]) {
+            carrito[nombre].cantidad++;
+        } else {
+            carrito[nombre] = { cantidad: 1, precio: precio };
+        }
+        actualizarCarrito();
+    }
+
+    function eliminarProducto(nombre) {
+        delete carrito[nombre];
+        actualizarCarrito();
+    }
+
+    function actualizarCarrito() {
+        const tabla = document.getElementById('tablaCarrito');
+        tabla.innerHTML = '';
+        let total = 0;
+
+        for (const [producto, data] of Object.entries(carrito)) {
+            const subtotal = data.cantidad * data.precio;
+            total += subtotal;
+
+            const row = document.createElement('tr');
+
+            const tdNombre = document.createElement('td');
+            tdNombre.textContent = producto;
+            row.appendChild(tdNombre);
+
+            const tdCantidad = document.createElement('td');
+            tdCantidad.textContent = data.cantidad;
+            row.appendChild(tdCantidad);
+
+            const tdPrecio = document.createElement('td');
+            tdPrecio.textContent = `$${data.precio.toLocaleString('es-CO')}`;
+            row.appendChild(tdPrecio);
+
+            const tdSubtotal = document.createElement('td');
+            tdSubtotal.textContent = `$${subtotal.toLocaleString('es-CO')}`;
+            row.appendChild(tdSubtotal);
+
+            const tdEliminar = document.createElement('td');
+            const btnEliminar = document.createElement('button');
+            btnEliminar.type = 'button';
+            btnEliminar.textContent = 'X';
+            btnEliminar.className = 'eliminar-btn';
+            btnEliminar.onclick = () => eliminarProducto(producto);
+            tdEliminar.appendChild(btnEliminar);
+            row.appendChild(tdEliminar);
+
+            tabla.appendChild(row);
+        }
+
+        document.getElementById('total').textContent = `Total: $${total.toLocaleString('es-CO')}`;
+
+        actualizarInputs();
+    }
+
+    function actualizarInputs() {
+        const form = document.getElementById('formVenta');
+        [...form.querySelectorAll('input[name="productos"]')].forEach(e => e.remove());
+
+        for (const [producto, data] of Object.entries(carrito)) {
+            for(let i=0; i < data.cantidad; i++) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'productos';
+                input.value = producto;
+                form.appendChild(input);
+            }
+        }
+    }
+</script>
+
 </body>
 </html>

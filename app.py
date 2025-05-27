@@ -8,8 +8,16 @@ app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
 categorias = {
-    'Almuerzos': ['Menú día', 'Sopa del día', 'Arroz con pollo'],
-    'Bebidas': ['Jugo natural', 'Agua', 'Refresco']
+    'Almuerzos': [
+        {'nombre': 'Menú día', 'precio': 15000},
+        {'nombre': 'Sopa del día', 'precio': 8000},
+        {'nombre': 'Arroz con pollo', 'precio': 12000}
+    ],
+    'Bebidas': [
+        {'nombre': 'Jugo natural', 'precio': 5000},
+        {'nombre': 'Agua', 'precio': 2000},
+        {'nombre': 'Refresco', 'precio': 4000}
+    ]
 }
 
 usuarios = {
