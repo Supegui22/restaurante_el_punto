@@ -1,7 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
-# Este archivo asume que SQLAlchemy se inicializó en app.py como `db = SQLAlchemy()`
 from app import db
 
 class Pedido(db.Model):
@@ -25,6 +24,7 @@ class DetallePedido(db.Model):
     pedido_id = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
     producto = db.Column(db.String(100), nullable=False)
     precio = db.Column(db.Float, nullable=False)
+    cantidad = db.Column(db.Integer, nullable=False, default=1)
 
     def __repr__(self):
-        return f'<Detalle {self.id} - Producto {self.producto}>'
+        return f'<Detalle {self.id} - Producto {self.producto} x {self.cantidad}>'

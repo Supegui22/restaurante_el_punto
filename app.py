@@ -70,15 +70,15 @@ def ventas_en_punto(mesa):
         session['estado_mesas'] = {m: 'libre' for m in mesas}
     estado_mesas = session['estado_mesas']
 
+    pedido = Pedido.query.filter_by(mesa=mesa, estado='activo').first()
+
     if request.method == 'POST':
         seleccionados = request.form.getlist('productos')
 
         if mesa and seleccionados:
             try:
-                # Buscar pedido activo para esta mesa
-                pedido = Pedido.query.filter_by(mesa=mesa, estado='activo').first()
                 if not pedido:
-                    pedido = Pedido(mesa=mesa, estado='activo')
+                    pedido = Pedido(mesa=mesa, usuario=session['usuario'], estado='activo')
                     db.session.add(pedido)
                     db.session.commit()
 
@@ -87,12 +87,25 @@ def ventas_en_punto(mesa):
                 for producto in seleccionados:
                     conteo_productos[producto] = conteo_productos.get(producto, 0) + 1
 
-                # Agregar productos al pedido
+                # Agregar productos al pedido con precio tomado de categorias
                 for nombre_producto, cantidad in conteo_productos.items():
+                    precio = None
+                    # Buscar el precio en categorias
+                    for cat in categorias.values():
+                        for prod in cat:
+                            if prod['nombre'] == nombre_producto:
+                                precio = prod['precio']
+                                break
+                        if precio is not None:
+                            break
+                    if precio is None:
+                        precio = 0  # Si no se encuentra, 0 para evitar error
+
                     detalle = DetallePedido(
                         pedido_id=pedido.id,
                         producto=nombre_producto,
-                        cantidad=cantidad
+                        cantidad=cantidad,
+                        precio=precio
                     )
                     db.session.add(detalle)
 
@@ -101,21 +114,47 @@ def ventas_en_punto(mesa):
                 session.modified = True
                 flash(f'Pedido guardado para la mesa {mesa}', 'success')
 
-            except SQLAlchemyError as e:
+            except SQLAlchemyError:
                 db.session.rollback()
                 flash('Error al guardar el pedido', 'danger')
 
         return redirect(url_for('ventas_en_punto', mesa=mesa))
 
+    # Cargar detalles del pedido si existe
+    detalles = DetallePedido.query.filter_by(pedido_id=pedido.id).all() if pedido else []
     mensajes = get_flashed_messages()
-    return render_template('ventas.html', categorias=categorias, mesa=mesa, mesas=mesas, estado_mesas=estado_mesas, mensajes=mensajes)
+
+    return render_template('ventas.html',
+                           categorias=categorias,
+                           mesa=mesa,
+                           mesas=mesas,
+                           estado_mesas=estado_mesas,
+                           pedido=pedido,
+                           detalles=detalles,
+                           mensajes=mensajes)
 
 @app.route('/liberar_mesa/<mesa>', methods=['POST'])
 def liberar_mesa(mesa):
     if 'estado_mesas' in session:
         session['estado_mesas'][mesa] = 'libre'
         session.modified = True
+
+    # Cerrar el pedido activo si existe
+    pedido = Pedido.query.filter_by(mesa=mesa, estado='activo').first()
+    if pedido:
+        pedido.estado = 'cerrado'
+        db.session.commit()
+
+    flash(f'Mesa {mesa} liberada y pedido cerrado.', 'info')
     return redirect(url_for('ventas_en_punto', mesa=mesa))
+
+@app.route('/cocina')
+def cocina():
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+
+    pedidos = Pedido.query.filter_by(estado='activo').all()
+    return render_template('cocina.html', pedidos=pedidos)
 
 @app.route('/logout')
 def logout():
