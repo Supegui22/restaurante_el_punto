@@ -3,11 +3,11 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 from io import BytesIO
 from reportlab.pdfgen import canvas
+import os
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
-# Productos por categoría
 categorias = {
     'Almuerzos': [
         {'nombre': 'Menú día', 'precio': 15000},
@@ -26,9 +26,9 @@ usuarios = {
     'domiciliario@example.com': {'password': '1234', 'rol': 'Domiciliario'}
 }
 
-# Estado y pedidos por mesa
-mesas = ['1', '2', '3', '4', '5', '6', '7']
-pedidos_por_mesa = {}
+# Definimos las mesas y su estado
+mesas = ['Mesa 1', 'Mesa 2', 'Mesa 3', 'Mesa 4', 'Mesa 5', 'Mesa 6', 'Mesa 7']
+estado_mesas = {mesa: 'libre' for mesa in mesas}  # Todas inicialmente libres
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -46,31 +46,29 @@ def login():
 
 @app.route('/ventas', methods=['GET', 'POST'])
 def ventas_en_punto():
+    global estado_mesas
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
-    # Estado mesas: 'libre' o 'ocupada'
-    estado_mesas = {mesa: ('ocupada' if mesa in pedidos_por_mesa else 'libre') for mesa in mesas}
-
     if request.method == 'POST':
-        mesa = request.form.get('mesa')
         seleccionados = request.form.getlist('productos')
+        mesa = request.form.get('mesa')
 
-        if not mesa or not seleccionados:
-            return "Debe seleccionar mesa y productos", 400
+        if not mesa or mesa not in mesas:
+            return "Debe seleccionar una mesa válida", 400
 
-        # Guardar pedido en pedidos_por_mesa
-        if mesa in pedidos_por_mesa:
-            pedidos_por_mesa[mesa].extend(seleccionados)
-        else:
-            pedidos_por_mesa[mesa] = seleccionados
+        if len(seleccionados) == 0:
+            return "Debe seleccionar al menos un producto", 400
 
         # Guardar los productos seleccionados en un archivo CSV
         with open('ventas.csv', mode='a', newline='', encoding='utf-8') as archivo:
             escritor = csv.writer(archivo)
             fecha = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             for producto in seleccionados:
-                escritor.writerow([fecha, session.get('usuario'), f'Mesa {mesa}', producto])
+                escritor.writerow([fecha, session.get('usuario'), mesa, producto])
+
+        # Cambiar estado mesa a ocupada
+        estado_mesas[mesa] = 'ocupada'
 
         # Generar PDF con comanda
         buffer = BytesIO()
@@ -85,32 +83,29 @@ def ventas_en_punto():
         p.showPage()
         p.save()
         buffer.seek(0)
+
         return send_file(buffer, as_attachment=True, download_name=f"comanda_mesa_{mesa}.pdf", mimetype='application/pdf')
 
+    # GET: mostrar la página con mesas y productos
     return render_template('ventas.html', categorias=categorias, mesas=mesas, estado_mesas=estado_mesas)
 
-@app.route('/liberar_mesa/<mesa>', methods=['POST'])
-def liberar_mesa(mesa):
+@app.route('/liberar_mesa', methods=['POST'])
+def liberar_mesa():
+    global estado_mesas
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
-    if mesa in pedidos_por_mesa:
-        pedidos_por_mesa.pop(mesa)
+    mesa = request.form.get('mesa')
+    if not mesa or mesa not in mesas:
+        return "Mesa inválida", 400
+
+    estado_mesas[mesa] = 'libre'
     return redirect(url_for('ventas_en_punto'))
-
-@app.route('/pedidos_activos')
-def pedidos_activos():
-    if 'usuario' not in session:
-        return redirect(url_for('login'))
-
-    return render_template('pedidos_activos.html', pedidos=pedidos_por_mesa)
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
-
-import os
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

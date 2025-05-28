@@ -15,11 +15,30 @@
             text-align: center;
             user-select: none;
         }
-        #carrito {
-            margin-top: 20px;
+        .mesa {
+            width: 70px;
+            height: 70px;
+            margin: 5px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            border: 2px solid #333;
         }
-        #carrito table th, #carrito table td {
-            vertical-align: middle;
+        .libre {
+            background-color: #28a745;
+            color: white;
+        }
+        .ocupada {
+            background-color: #dc3545;
+            color: white;
+        }
+        .mesa-seleccionada {
+            border: 3px solid #007bff;
         }
         button.eliminar-btn {
             color: white;
@@ -34,22 +53,44 @@
 
     <h1>Ventas en Punto</h1>
 
-    <div id="productos">
-        {% for categoria, productos in categorias.items() %}
-            <h3>{{ categoria }}</h3>
-            <div class="mb-3">
-                {% for producto in productos %}
-                    <div class="producto" onclick="agregarProducto('{{ producto.nombre }}', {{ producto.precio }})">
-                        <strong>{{ producto.nombre }}</strong><br>
-                        ${{ producto.precio }}
-                    </div>
-                {% endfor %}
+    <h3>Selecciona una mesa:</h3>
+    <div id="salon" class="mb-3">
+        {% for mesa in mesas %}
+            <div 
+                class="mesa {{ estado_mesas[mesa] }}" 
+                id="mesa-{{ mesa }}"
+                onclick="seleccionarMesa('{{ mesa }}')"
+                title="Mesa {{ mesa }} - {{ estado_mesas[mesa]|capitalize }}"
+            >
+                {{ mesa }}
             </div>
         {% endfor %}
     </div>
 
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4>Mesa Seleccionada: <span id="mesaSeleccionada">Ninguna</span></h4>
+        <form method="POST" action="{{ url_for('liberar_mesa') }}" onsubmit="return confirmarLiberacion()">
+            <input type="hidden" name="mesa" id="inputMesaLiberar">
+            <button type="submit" class="btn btn-danger" id="btnLiberar" disabled>Liberar Mesa</button>
+        </form>
+    </div>
+
+    <h3>Productos</h3>
+    {% for categoria, productos in categorias.items() %}
+        <h4>{{ categoria }}</h4>
+        <div class="mb-3">
+            {% for producto in productos %}
+                <div class="producto" onclick="agregarProducto('{{ producto.nombre }}', {{ producto.precio }})">
+                    <strong>{{ producto.nombre }}</strong><br>
+                    ${{ producto.precio }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+
     <h2>Carrito</h2>
     <form id="formVenta" method="POST">
+        <input type="hidden" name="mesa" id="inputMesa" value="">
         <div id="carrito">
             <table class="table table-bordered">
                 <thead>
@@ -61,20 +102,35 @@
                         <th>Eliminar</th>
                     </tr>
                 </thead>
-                <tbody id="tablaCarrito">
-                    <!-- Productos agregados aquí -->
-                </tbody>
+                <tbody id="tablaCarrito"></tbody>
             </table>
             <div id="total" class="fs-4 fw-bold text-end">Total: $0</div>
         </div>
-        <button type="submit" class="btn btn-primary mt-3">Enviar a Cocina</button>
+        <button type="submit" class="btn btn-primary mt-3" id="btnEnviar" disabled>Enviar a Cocina</button>
     </form>
 
 <script>
     const carrito = {};
+    let mesaSeleccionada = null;
+
+    function seleccionarMesa(mesa) {
+        if (mesaSeleccionada) {
+            document.getElementById('mesa-' + mesaSeleccionada).classList.remove('mesa-seleccionada');
+        }
+        mesaSeleccionada = mesa;
+        document.getElementById('mesa-' + mesa).classList.add('mesa-seleccionada');
+        document.getElementById('mesaSeleccionada').textContent = mesa;
+        document.getElementById('inputMesa').value = mesa;
+        document.getElementById('inputMesaLiberar').value = mesa;
+        actualizarBotones();
+    }
 
     function agregarProducto(nombre, precio) {
-        if(carrito[nombre]) {
+        if (!mesaSeleccionada) {
+            alert('Por favor selecciona una mesa primero.');
+            return;
+        }
+        if (carrito[nombre]) {
             carrito[nombre].cantidad++;
         } else {
             carrito[nombre] = { cantidad: 1, precio: precio };
@@ -97,38 +153,19 @@
             total += subtotal;
 
             const row = document.createElement('tr');
-
-            const tdNombre = document.createElement('td');
-            tdNombre.textContent = producto;
-            row.appendChild(tdNombre);
-
-            const tdCantidad = document.createElement('td');
-            tdCantidad.textContent = data.cantidad;
-            row.appendChild(tdCantidad);
-
-            const tdPrecio = document.createElement('td');
-            tdPrecio.textContent = `$${data.precio.toLocaleString('es-CO')}`;
-            row.appendChild(tdPrecio);
-
-            const tdSubtotal = document.createElement('td');
-            tdSubtotal.textContent = `$${subtotal.toLocaleString('es-CO')}`;
-            row.appendChild(tdSubtotal);
-
-            const tdEliminar = document.createElement('td');
-            const btnEliminar = document.createElement('button');
-            btnEliminar.type = 'button';
-            btnEliminar.textContent = 'X';
-            btnEliminar.className = 'eliminar-btn';
-            btnEliminar.onclick = () => eliminarProducto(producto);
-            tdEliminar.appendChild(btnEliminar);
-            row.appendChild(tdEliminar);
-
+            row.innerHTML = `
+                <td>${producto}</td>
+                <td>${data.cantidad}</td>
+                <td>$${data.precio.toLocaleString('es-CO')}</td>
+                <td>$${subtotal.toLocaleString('es-CO')}</td>
+                <td><button type="button" class="eliminar-btn" onclick="eliminarProducto('${producto}')">X</button></td>
+            `;
             tabla.appendChild(row);
         }
 
         document.getElementById('total').textContent = `Total: $${total.toLocaleString('es-CO')}`;
-
         actualizarInputs();
+        actualizarBotones();
     }
 
     function actualizarInputs() {
@@ -136,7 +173,7 @@
         [...form.querySelectorAll('input[name="productos"]')].forEach(e => e.remove());
 
         for (const [producto, data] of Object.entries(carrito)) {
-            for(let i=0; i < data.cantidad; i++) {
+            for (let i = 0; i < data.cantidad; i++) {
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = 'productos';
@@ -144,6 +181,17 @@
                 form.appendChild(input);
             }
         }
+    }
+
+    function actualizarBotones() {
+        const btnEnviar = document.getElementById('btnEnviar');
+        const btnLiberar = document.getElementById('btnLiberar');
+        btnEnviar.disabled = !mesaSeleccionada || Object.keys(carrito).length === 0;
+        btnLiberar.disabled = !mesaSeleccionada;
+    }
+
+    function confirmarLiberacion() {
+        return confirm(`¿Estás seguro de que deseas liberar ${mesaSeleccionada}?`);
     }
 </script>
 
