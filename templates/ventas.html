@@ -41,7 +41,7 @@
                 {% for producto in productos %}
                     <div class="producto" onclick="agregarProducto('{{ producto.nombre }}', {{ producto.precio }})">
                         <strong>{{ producto.nombre }}</strong><br>
-                        ${{ producto.precio.toLocaleString('es-CO') }}
+                        ${{ producto.precio }}
                     </div>
                 {% endfor %}
             </div>
