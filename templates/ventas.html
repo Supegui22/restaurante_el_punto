@@ -10,7 +10,7 @@
             margin: 5px;
             padding: 10px;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 8px;
             display: inline-block;
             min-width: 150px;
             text-align: center;
@@ -18,13 +18,13 @@
             transition: background-color 0.3s;
         }
         .producto:hover {
-            background-color: #e0f0ff;
+            background-color: #e9f7ff;
         }
         .mesa {
             width: 70px;
             height: 70px;
             margin: 5px;
-            border-radius: 10px;
+            border-radius: 12px;
             font-weight: bold;
             font-size: 1.2rem;
             cursor: pointer;
@@ -44,20 +44,19 @@
             color: white;
         }
         .mesa-seleccionada {
-            border: 3px solid #007bff;
+            border: 4px solid #007bff;
         }
-        button.eliminar-btn {
+        .eliminar-btn {
             color: white;
             background-color: #dc3545;
             border: none;
-            border-radius: 3px;
-            padding: 3px 8px;
+            border-radius: 4px;
+            padding: 4px 10px;
             cursor: pointer;
         }
-        button.eliminar-btn:hover {
+        .eliminar-btn:hover {
             background-color: #a71d2a;
         }
-        /* Estilos para Toast */
         #toastContainer {
             position: fixed;
             top: 1rem;
@@ -68,7 +67,7 @@
 </head>
 <body class="container py-4">
 
-    <h1>Ventas en Punto</h1>
+    <h1 class="mb-4">Ventas en Punto</h1>
 
     <h3>Selecciona una mesa:</h3>
     <div id="salon" class="mb-3">
@@ -141,22 +140,17 @@
         document.getElementById('mesa-' + mesa).classList.add('mesa-seleccionada');
         document.getElementById('mesaSeleccionada').textContent = mesa;
         document.getElementById('inputMesa').value = mesa;
+        document.getElementById('liberarForm').action = `/liberar_mesa/${mesa}`;
         actualizarBotones();
-
-        const liberarForm = document.getElementById('liberarForm');
-        liberarForm.action = `/liberar_mesa/${mesa}`;
     }
 
     function agregarProducto(nombre, precio) {
         if (!mesaSeleccionada) {
-            alert('Por favor selecciona una mesa primero.');
+            alert('Selecciona una mesa primero.');
             return;
         }
-        if (carrito[nombre]) {
-            carrito[nombre].cantidad++;
-        } else {
-            carrito[nombre] = { cantidad: 1, precio: precio };
-        }
+        carrito[nombre] = carrito[nombre] || { cantidad: 0, precio };
+        carrito[nombre].cantidad += 1;
         actualizarCarrito();
     }
 
@@ -170,7 +164,7 @@
         tabla.innerHTML = '';
         let total = 0;
 
-        for (const [producto, data] of Object.entries(carrito)) {
+        Object.entries(carrito).forEach(([producto, data]) => {
             const subtotal = data.cantidad * data.precio;
             total += subtotal;
 
@@ -183,7 +177,7 @@
                 <td><button type="button" class="eliminar-btn" onclick="eliminarProducto('${producto}')">X</button></td>
             `;
             tabla.appendChild(row);
-        }
+        });
 
         document.getElementById('total').textContent = `Total: $${total.toLocaleString('es-CO')}`;
         actualizarInputs();
@@ -192,9 +186,9 @@
 
     function actualizarInputs() {
         const form = document.getElementById('formVenta');
-        [...form.querySelectorAll('input[name="productos"]')].forEach(e => e.remove());
+        form.querySelectorAll('input[name="productos"]').forEach(e => e.remove());
 
-        for (const [producto, data] of Object.entries(carrito)) {
+        Object.entries(carrito).forEach(([producto, data]) => {
             for (let i = 0; i < data.cantidad; i++) {
                 const input = document.createElement('input');
                 input.type = 'hidden';
@@ -202,7 +196,7 @@
                 input.value = producto;
                 form.appendChild(input);
             }
-        }
+        });
     }
 
     function actualizarBotones() {
@@ -213,17 +207,11 @@
     }
 
     function confirmarLiberacion() {
-        if (!mesaSeleccionada) {
-            alert('Selecciona una mesa primero.');
-            return false;
-        }
-        return confirm('¿Seguro que quieres liberar la mesa ' + mesaSeleccionada + '?');
+        return mesaSeleccionada && confirm(`¿Liberar la mesa ${mesaSeleccionada}?`);
     }
 
-    // Confirmación con resumen antes de enviar pedido
     document.getElementById('formVenta').addEventListener('submit', function(e) {
         e.preventDefault();
-
         if (!mesaSeleccionada || Object.keys(carrito).length === 0) {
             alert('Selecciona una mesa y agrega productos antes de enviar.');
             return;
@@ -231,20 +219,18 @@
 
         let resumen = `🧾 Pedido para Mesa ${mesaSeleccionada}:\n\n`;
         let total = 0;
-        for (const [producto, data] of Object.entries(carrito)) {
+        Object.entries(carrito).forEach(([producto, data]) => {
             const subtotal = data.cantidad * data.precio;
             resumen += `${producto} x${data.cantidad} = $${subtotal.toLocaleString('es-CO')}\n`;
             total += subtotal;
-        }
+        });
         resumen += `\n💰 Total: $${total.toLocaleString('es-CO')}`;
 
         if (confirm(resumen + "\n\n¿Enviar este pedido a cocina?")) {
-            // Enviar formulario y mostrar toast al recibir respuesta de Flask
             this.submit();
         }
     });
 
-    // Función para mostrar Toast
     function mostrarToast(mensaje, tipo = 'success') {
         const toastContainer = document.getElementById('toastContainer');
         const toastEl = document.createElement('div');
@@ -254,9 +240,7 @@
         toastEl.ariaAtomic = 'true';
         toastEl.innerHTML = `
             <div class="d-flex">
-                <div class="toast-body">
-                    ${mensaje}
-                </div>
+                <div class="toast-body">${mensaje}</div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
             </div>
         `;
@@ -264,29 +248,16 @@
 
         const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
         toast.show();
-
-        // Remover toast del DOM al cerrarlo
-        toastEl.addEventListener('hidden.bs.toast', () => {
-            toastEl.remove();
-        });
+        toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
     }
 
-
     document.addEventListener('DOMContentLoaded', () => {
-        // Selecciona la mesa que viene por URL o variable 'mesa' para destacar
         const urlMesa = "{{ mesa }}";
-        if (urlMesa) {
-            seleccionarMesa(urlMesa);
-        }
+        if (urlMesa) seleccionarMesa(urlMesa);
 
-        // Mostrar toasts de mensajes flash que vienen del backend
         const mensajes = {{ mensajes|tojson }};
-        mensajes.forEach(mensaje => {
-            mostrarToast(mensaje, 'success');
-        });
+        mensajes.forEach(mensaje => mostrarToast(mensaje, 'success'));
     });
 </script>
-
-
 </body>
 </html>
