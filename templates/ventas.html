@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8" />
     <title>Ventas en Punto - Restaurante el Punto</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
         .producto {
             cursor: pointer;
@@ -14,6 +15,10 @@
             min-width: 150px;
             text-align: center;
             user-select: none;
+            transition: background-color 0.3s;
+        }
+        .producto:hover {
+            background-color: #e0f0ff;
         }
         .mesa {
             width: 70px;
@@ -28,6 +33,7 @@
             justify-content: center;
             user-select: none;
             border: 2px solid #333;
+            transition: background-color 0.3s, border-color 0.3s;
         }
         .libre {
             background-color: #28a745;
@@ -46,6 +52,10 @@
             border: none;
             border-radius: 3px;
             padding: 3px 8px;
+            cursor: pointer;
+        }
+        button.eliminar-btn:hover {
+            background-color: #a71d2a;
         }
     </style>
 </head>
@@ -79,7 +89,7 @@
         <h4>{{ categoria }}</h4>
         <div class="mb-3">
             {% for producto in productos %}
-                <div class="producto" onclick="agregarProducto('{{ producto.nombre }}', {{ producto.precio }})">
+                <div class="producto" onclick="agregarProducto('{{ producto.nombre }}', {{ producto.precio }})" title="Precio: ${{ producto.precio }}">
                     <strong>{{ producto.nombre }}</strong><br>
                     ${{ producto.precio }}
                 </div>
@@ -121,6 +131,9 @@
         document.getElementById('mesaSeleccionada').textContent = mesa;
         document.getElementById('inputMesa').value = mesa;
         actualizarBotones();
+
+        const liberarForm = document.getElementById('liberarForm');
+        liberarForm.action = `/liberar_mesa/${mesa}`;
     }
 
     function agregarProducto(nombre, precio) {
@@ -196,15 +209,34 @@
         return confirm('¿Seguro que quieres liberar la mesa ' + mesaSeleccionada + '?');
     }
 
-    const liberarForm = document.getElementById('liberarForm');
-
-    liberarForm.addEventListener('submit', function(event) {
-        if (!mesaSeleccionada) {
-            alert('Selecciona una mesa primero.');
-            event.preventDefault();
-            return false;
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlMesa = "{{ mesa }}";
+        if (urlMesa) {
+            seleccionarMesa(urlMesa);
         }
-        liberarForm.action = `/liberar_mesa/${mesaSeleccionada}`;
+    });
+
+    // NUEVO BLOQUE: Alerta resumen antes de enviar pedido
+    document.getElementById('formVenta').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (!mesaSeleccionada || Object.keys(carrito).length === 0) {
+            alert('Selecciona una mesa y agrega productos antes de enviar.');
+            return;
+        }
+
+        let resumen = `🧾 Pedido para Mesa ${mesaSeleccionada}:\n\n`;
+        let total = 0;
+        for (const [producto, data] of Object.entries(carrito)) {
+            const subtotal = data.cantidad * data.precio;
+            resumen += `${producto} x${data.cantidad} = $${subtotal.toLocaleString('es-CO')}\n`;
+            total += subtotal;
+        }
+        resumen += `\n💰 Total: $${total.toLocaleString('es-CO')}`;
+
+        if (confirm(resumen + "\n\n¿Enviar este pedido a cocina?")) {
+            this.submit();
+        }
     });
 </script>
 

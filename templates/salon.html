@@ -14,6 +14,19 @@
             position: relative; /* para el humo */
             transition: transform 0.3s, box-shadow 0.3s;
             border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            width: 120px;
+            height: 140px;
+            padding: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            text-decoration: none;
+            overflow: visible;
+            user-select: none;
         }
 
         .mesa-container:hover {
@@ -25,24 +38,7 @@
             width: 100%;
             height: 100px;
             object-fit: contain;
-        }
-
-        .mesa-button {
-            width: 120px;
-            height: 140px;
-            border: none;
-            border-radius: 20px;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            transition: background-color 0.3s;
-            position: relative;
-            overflow: visible;
+            pointer-events: none;
         }
 
         .libre {
@@ -55,6 +51,30 @@
 
         .mesa-label {
             margin-top: 5px;
+            pointer-events: none;
+        }
+
+        /* Botón para liberar mesa */
+        .btn-liberar {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            background: rgba(255,255,255,0.8);
+            border: none;
+            border-radius: 12px;
+            color: #dc3545;
+            font-weight: bold;
+            width: 24px;
+            height: 24px;
+            line-height: 22px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            user-select: none;
+        }
+        .btn-liberar:hover {
+            background-color: #dc3545;
+            color: white;
         }
 
         /* Humo animado para mesas ocupadas */
@@ -88,6 +108,13 @@
                 opacity: 0;
             }
         }
+
+        /* Mensaje cuando no hay mesas ocupadas */
+        #mensaje-vacio {
+            font-size: 1.2rem;
+            color: #666;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -96,17 +123,23 @@
     <h2 class="mb-4">Salón de Mesas</h2>
     <div class="row justify-content-center">
         {% for mesa in mesas %}
-        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
-            <form method="POST" action="{{ url_for('ventas_en_punto') }}">
-                <input type="hidden" name="mesa" value="{{ mesa }}">
-                <button type="submit" class="mesa-button mesa-container {{ estado_mesas[mesa] }}">
-                    <img src="{{ url_for('static', filename='img/mesa.png') }}" class="mesa-img" alt="Mesa">
-                    <span class="mesa-label">Mesa {{ mesa }}</span>
-                </button>
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4 position-relative">
+            <a href="{{ url_for('ventas_en_punto', mesa=mesa) }}" class="mesa-container {{ estado_mesas[mesa] }}">
+                <img src="{{ url_for('static', filename='img/mesa.png') }}" class="mesa-img" alt="Mesa">
+                <span class="mesa-label">Mesa {{ mesa }}</span>
+            </a>
+            {% if estado_mesas[mesa] == 'ocupada' %}
+            <form method="POST" action="{{ url_for('liberar_mesa', mesa=mesa) }}" style="position: absolute; top: 5px; right: 8px;">
+                <button type="submit" class="btn-liberar" title="Liberar Mesa {{ mesa }}" onclick="return confirm('¿Seguro que quieres liberar la mesa {{ mesa }}?')">&times;</button>
             </form>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
+
+    {% if 'ocupada' not in estado_mesas.values() %}
+    <div id="mensaje-vacio">No hay mesas ocupadas en este momento.</div>
+    {% endif %}
 </div>
 
 </body>
