@@ -69,8 +69,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4>Mesa Seleccionada: <span id="mesaSeleccionada">Ninguna</span></h4>
-        <form method="POST" action="{{ url_for('liberar_mesa') }}" onsubmit="return confirmarLiberacion()">
-            <input type="hidden" name="mesa" id="inputMesaLiberar">
+        <form id="liberarForm" method="POST" onsubmit="return confirmarLiberacion()">
             <button type="submit" class="btn btn-danger" id="btnLiberar" disabled>Liberar Mesa</button>
         </form>
     </div>
@@ -121,7 +120,6 @@
         document.getElementById('mesa-' + mesa).classList.add('mesa-seleccionada');
         document.getElementById('mesaSeleccionada').textContent = mesa;
         document.getElementById('inputMesa').value = mesa;
-        document.getElementById('inputMesaLiberar').value = mesa;
         actualizarBotones();
     }
 
@@ -191,8 +189,23 @@
     }
 
     function confirmarLiberacion() {
-        return confirm(`¿Estás seguro de que deseas liberar ${mesaSeleccionada}?`);
+        if (!mesaSeleccionada) {
+            alert('Selecciona una mesa primero.');
+            return false;
+        }
+        return confirm('¿Seguro que quieres liberar la mesa ' + mesaSeleccionada + '?');
     }
+
+    const liberarForm = document.getElementById('liberarForm');
+
+    liberarForm.addEventListener('submit', function(event) {
+        if (!mesaSeleccionada) {
+            alert('Selecciona una mesa primero.');
+            event.preventDefault();
+            return false;
+        }
+        liberarForm.action = `/liberar_mesa/${mesaSeleccionada}`;
+    });
 </script>
 
 </body>

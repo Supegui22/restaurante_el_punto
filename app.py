@@ -88,12 +88,12 @@ def ventas_en_punto():
     return render_template('ventas.html', categorias=categorias, mesas=mesas, estado_mesas=estado_mesas)
 
 
-@app.route('/liberar_mesa/<mesa>')
+@app.route('/liberar_mesa/<mesa>', methods=['POST'])
 def liberar_mesa(mesa):
-    if mesa in estado_mesas:
-        estado_mesas[mesa] = 'libre'
-        flash(f'Mesa {mesa} liberada correctamente.')
+    # lógica para liberar mesa
+    estado_mesas[mesa] = 'libre'
     return redirect(url_for('ventas_en_punto'))
+
 
 
 @app.route('/pedidos_activos')
