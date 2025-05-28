@@ -1,13 +1,15 @@
 import csv
-from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session, send_file
-from io import BytesIO
-from reportlab.pdfgen import canvas
 import os
+from datetime import datetime
+from io import BytesIO
+from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
+
+from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
+# Datos fijos para la demo
 categorias = {
     'Almuerzos': [
         {'nombre': 'Menú día', 'precio': 15000},
@@ -26,9 +28,10 @@ usuarios = {
     'domiciliario@example.com': {'password': '1234', 'rol': 'Domiciliario'}
 }
 
-# Definimos las mesas y su estado
-mesas = ['Mesa 1', 'Mesa 2', 'Mesa 3', 'Mesa 4', 'Mesa 5', 'Mesa 6', 'Mesa 7']
-estado_mesas = {mesa: 'libre' for mesa in mesas}  # Todas inicialmente libres
+# Estado de las mesas (inicialmente todas libres)
+mesas = ['1', '2', '3', '4', '5', '6', '7']
+estado_mesas = {mesa: 'libre' for mesa in mesas}
+
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -44,37 +47,32 @@ def login():
             return "Credenciales inválidas", 401
     return render_template('login.html')
 
+
 @app.route('/ventas', methods=['GET', 'POST'])
 def ventas_en_punto():
-    global estado_mesas
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        seleccionados = request.form.getlist('productos')
         mesa = request.form.get('mesa')
+        seleccionados = request.form.getlist('productos')
 
-        if not mesa or mesa not in mesas:
-            return "Debe seleccionar una mesa válida", 400
+        # Marcar mesa como ocupada
+        if mesa:
+            estado_mesas[mesa] = 'ocupada'
 
-        if len(seleccionados) == 0:
-            return "Debe seleccionar al menos un producto", 400
-
-        # Guardar los productos seleccionados en un archivo CSV
+        # Guardar los productos en archivo CSV
         with open('ventas.csv', mode='a', newline='', encoding='utf-8') as archivo:
             escritor = csv.writer(archivo)
             fecha = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             for producto in seleccionados:
                 escritor.writerow([fecha, session.get('usuario'), mesa, producto])
 
-        # Cambiar estado mesa a ocupada
-        estado_mesas[mesa] = 'ocupada'
-
-        # Generar PDF con comanda
+        # Generar comanda en PDF (opcional)
         buffer = BytesIO()
         p = canvas.Canvas(buffer)
         p.setFont("Helvetica-Bold", 14)
-        p.drawString(100, 800, f"Comanda - Restaurante El Punto - Mesa {mesa}")
+        p.drawString(100, 800, f"Comanda - Mesa {mesa}")
         p.setFont("Helvetica", 12)
         y = 760
         for producto in seleccionados:
@@ -84,29 +82,38 @@ def ventas_en_punto():
         p.save()
         buffer.seek(0)
 
-        return send_file(buffer, as_attachment=True, download_name=f"comanda_mesa_{mesa}.pdf", mimetype='application/pdf')
+        flash(f'Pedido enviado para la mesa {mesa}')
+        return redirect(url_for('ventas_en_punto'))
 
-    # GET: mostrar la página con mesas y productos
     return render_template('ventas.html', categorias=categorias, mesas=mesas, estado_mesas=estado_mesas)
 
-@app.route('/liberar_mesa', methods=['POST'])
-def liberar_mesa():
-    global estado_mesas
-    if 'usuario' not in session:
-        return redirect(url_for('login'))
 
-    mesa = request.form.get('mesa')
-    if not mesa or mesa not in mesas:
-        return "Mesa inválida", 400
-
-    estado_mesas[mesa] = 'libre'
+@app.route('/liberar_mesa/<mesa>')
+def liberar_mesa(mesa):
+    if mesa in estado_mesas:
+        estado_mesas[mesa] = 'libre'
+        flash(f'Mesa {mesa} liberada correctamente.')
     return redirect(url_for('ventas_en_punto'))
+
+
+@app.route('/pedidos_activos')
+def pedidos_activos():
+    pedidos = []
+    try:
+        with open('ventas.csv', newline='', encoding='utf-8') as archivo:
+            lector = csv.reader(archivo)
+            pedidos = list(lector)
+    except FileNotFoundError:
+        pass
+    return render_template('pedidos.html', pedidos=pedidos)
+
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)
