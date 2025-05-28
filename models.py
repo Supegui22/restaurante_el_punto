@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
-# Este archivo asume que SQLAlchemy se inicializó en app.py como `db = SQLAlchemy(app)`
+# Este archivo asume que SQLAlchemy se inicializó en app.py como `db = SQLAlchemy()`
 from app import db
 
 class Pedido(db.Model):

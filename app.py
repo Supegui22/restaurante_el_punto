@@ -1,7 +1,6 @@
 import os
-from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages
-from flask_sqlalchemy import SQLAlchemy
+from models import db, Pedido, DetallePedido
 from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__)
@@ -10,21 +9,8 @@ app.secret_key = 'tu_clave_secreta'
 # Configuración de SQLAlchemy
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ventas.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
 
-# Importar modelos después de crear db
-class Pedido(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    mesa = db.Column(db.String(10), nullable=False)
-    estado = db.Column(db.String(20), default='activo')  # activo o cerrado
-    fecha = db.Column(db.DateTime, default=datetime.utcnow)
-    detalles = db.relationship('DetallePedido', backref='pedido', lazy=True)
-
-class DetallePedido(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    pedido_id = db.Column(db.Integer, db.ForeignKey('pedido.id'), nullable=False)
-    producto = db.Column(db.String(100), nullable=False)
-    cantidad = db.Column(db.Integer, default=1)
+db.init_app(app)
 
 # Datos fijos para la demo
 categorias = {
@@ -47,6 +33,10 @@ usuarios = {
 
 mesas = ['1', '2', '3', '4', '5', '6', '7']
 
+@app.before_first_request
+def crear_tablas():
+    db.create_all()
+
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -67,6 +57,7 @@ def login():
 def salon():
     if 'usuario' not in session:
         return redirect(url_for('login'))
+
     estado_mesas = session.get('estado_mesas', {mesa: 'libre' for mesa in mesas})
     return render_template('salon.html', mesas=mesas, estado_mesas=estado_mesas)
 
@@ -84,16 +75,19 @@ def ventas_en_punto(mesa):
 
         if mesa and seleccionados:
             try:
+                # Buscar pedido activo para esta mesa
                 pedido = Pedido.query.filter_by(mesa=mesa, estado='activo').first()
                 if not pedido:
                     pedido = Pedido(mesa=mesa, estado='activo')
                     db.session.add(pedido)
                     db.session.commit()
 
+                # Contar productos seleccionados
                 conteo_productos = {}
                 for producto in seleccionados:
                     conteo_productos[producto] = conteo_productos.get(producto, 0) + 1
 
+                # Agregar productos al pedido
                 for nombre_producto, cantidad in conteo_productos.items():
                     detalle = DetallePedido(
                         pedido_id=pedido.id,
@@ -107,11 +101,11 @@ def ventas_en_punto(mesa):
                 session.modified = True
                 flash(f'Pedido guardado para la mesa {mesa}', 'success')
 
-            except SQLAlchemyError:
+            except SQLAlchemyError as e:
                 db.session.rollback()
                 flash('Error al guardar el pedido', 'danger')
 
-            return redirect(url_for('ventas_en_punto', mesa=mesa))
+        return redirect(url_for('ventas_en_punto', mesa=mesa))
 
     mensajes = get_flashed_messages()
     return render_template('ventas.html', categorias=categorias, mesa=mesa, mesas=mesas, estado_mesas=estado_mesas, mensajes=mensajes)
@@ -121,17 +115,7 @@ def liberar_mesa(mesa):
     if 'estado_mesas' in session:
         session['estado_mesas'][mesa] = 'libre'
         session.modified = True
-    # Opcional: cerrar pedido activo al liberar la mesa
-    pedido = Pedido.query.filter_by(mesa=mesa, estado='activo').first()
-    if pedido:
-        pedido.estado = 'cerrado'
-        db.session.commit()
     return redirect(url_for('ventas_en_punto', mesa=mesa))
-
-@app.route('/pedidos_activos')
-def pedidos_activos():
-    pedidos = Pedido.query.filter_by(estado='activo').all()
-    return render_template('pedidos.html', pedidos=pedidos)
 
 @app.route('/logout')
 def logout():
@@ -139,7 +123,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
