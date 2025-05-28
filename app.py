@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from io import BytesIO
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
-
 from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
@@ -28,9 +27,7 @@ usuarios = {
     'domiciliario@example.com': {'password': '1234', 'rol': 'Domiciliario'}
 }
 
-# Estado de las mesas (inicialmente todas libres)
 mesas = ['1', '2', '3', '4', '5', '6', '7']
-estado_mesas = {mesa: 'libre' for mesa in mesas}
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -53,6 +50,12 @@ def ventas_en_punto():
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
+    # Inicializar el estado de las mesas si no existe en la sesión
+    if 'estado_mesas' not in session:
+        session['estado_mesas'] = {mesa: 'libre' for mesa in mesas}
+
+    estado_mesas = session['estado_mesas']
+
     if request.method == 'POST':
         mesa = request.form.get('mesa')
         seleccionados = request.form.getlist('productos')
@@ -60,6 +63,7 @@ def ventas_en_punto():
         # Marcar mesa como ocupada
         if mesa:
             estado_mesas[mesa] = 'ocupada'
+            session.modified = True  # Asegura que se guarde el cambio
 
         # Guardar los productos en archivo CSV
         with open('ventas.csv', mode='a', newline='', encoding='utf-8') as archivo:
@@ -90,10 +94,10 @@ def ventas_en_punto():
 
 @app.route('/liberar_mesa/<mesa>', methods=['POST'])
 def liberar_mesa(mesa):
-    # lógica para liberar mesa
-    estado_mesas[mesa] = 'libre'
+    if 'estado_mesas' in session:
+        session['estado_mesas'][mesa] = 'libre'
+        session.modified = True
     return redirect(url_for('ventas_en_punto'))
-
 
 
 @app.route('/pedidos_activos')
