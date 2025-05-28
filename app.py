@@ -7,6 +7,7 @@ from reportlab.pdfgen import canvas
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
+# Productos por categoría
 categorias = {
     'Almuerzos': [
         {'nombre': 'Menú día', 'precio': 15000},
@@ -24,6 +25,10 @@ usuarios = {
     'admin@example.com': {'password': '1234', 'rol': 'Admin'},
     'domiciliario@example.com': {'password': '1234', 'rol': 'Domiciliario'}
 }
+
+# Estado y pedidos por mesa
+mesas = ['1', '2', '3', '4', '5', '6', '7']
+pedidos_por_mesa = {}
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -44,21 +49,34 @@ def ventas_en_punto():
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
+    # Estado mesas: 'libre' o 'ocupada'
+    estado_mesas = {mesa: ('ocupada' if mesa in pedidos_por_mesa else 'libre') for mesa in mesas}
+
     if request.method == 'POST':
+        mesa = request.form.get('mesa')
         seleccionados = request.form.getlist('productos')
+
+        if not mesa or not seleccionados:
+            return "Debe seleccionar mesa y productos", 400
+
+        # Guardar pedido en pedidos_por_mesa
+        if mesa in pedidos_por_mesa:
+            pedidos_por_mesa[mesa].extend(seleccionados)
+        else:
+            pedidos_por_mesa[mesa] = seleccionados
 
         # Guardar los productos seleccionados en un archivo CSV
         with open('ventas.csv', mode='a', newline='', encoding='utf-8') as archivo:
             escritor = csv.writer(archivo)
             fecha = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             for producto in seleccionados:
-                escritor.writerow([fecha, session.get('usuario'), producto])
+                escritor.writerow([fecha, session.get('usuario'), f'Mesa {mesa}', producto])
 
         # Generar PDF con comanda
         buffer = BytesIO()
         p = canvas.Canvas(buffer)
         p.setFont("Helvetica-Bold", 14)
-        p.drawString(100, 800, "Comanda - Restaurante El Punto")
+        p.drawString(100, 800, f"Comanda - Restaurante El Punto - Mesa {mesa}")
         p.setFont("Helvetica", 12)
         y = 760
         for producto in seleccionados:
@@ -67,11 +85,25 @@ def ventas_en_punto():
         p.showPage()
         p.save()
         buffer.seek(0)
-        return send_file(buffer, as_attachment=True, download_name="comanda.pdf", mimetype='application/pdf')
+        return send_file(buffer, as_attachment=True, download_name=f"comanda_mesa_{mesa}.pdf", mimetype='application/pdf')
 
-    # Si es GET, solo renderiza la página
-    return render_template('ventas.html', categorias=categorias)
+    return render_template('ventas.html', categorias=categorias, mesas=mesas, estado_mesas=estado_mesas)
 
+@app.route('/liberar_mesa/<mesa>', methods=['POST'])
+def liberar_mesa(mesa):
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+
+    if mesa in pedidos_por_mesa:
+        pedidos_por_mesa.pop(mesa)
+    return redirect(url_for('ventas_en_punto'))
+
+@app.route('/pedidos_activos')
+def pedidos_activos():
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+
+    return render_template('pedidos_activos.html', pedidos=pedidos_por_mesa)
 
 @app.route('/logout')
 def logout():
@@ -83,4 +115,3 @@ import os
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
