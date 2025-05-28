@@ -54,12 +54,13 @@ def salon():
     estado_mesas = session.get('estado_mesas', {mesa: 'libre' for mesa in mesas})
     return render_template('salon.html', mesas=mesas, estado_mesas=estado_mesas)
 
+from flask import get_flashed_messages
+
 @app.route('/ventas/<mesa>', methods=['GET', 'POST'])
 def ventas_en_punto(mesa):
     if 'usuario' not in session:
         return redirect(url_for('login'))
 
-    # Asegurar que estado_mesas exista
     if 'estado_mesas' not in session:
         session['estado_mesas'] = {m: 'libre' for m in mesas}
     estado_mesas = session['estado_mesas']
@@ -67,13 +68,10 @@ def ventas_en_punto(mesa):
     if request.method == 'POST':
         seleccionados = request.form.getlist('productos')
 
-        if mesa:
-            # Marcar la mesa como ocupada solo si hay productos seleccionados
-            if seleccionados:
-                estado_mesas[mesa] = 'ocupada'
+        if mesa and seleccionados:
+            estado_mesas[mesa] = 'ocupada'
             session.modified = True
 
-        # Guardar pedidos en CSV
         with open('ventas.csv', mode='a', newline='', encoding='utf-8') as archivo:
             escritor = csv.writer(archivo)
             fecha = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -83,8 +81,8 @@ def ventas_en_punto(mesa):
         flash(f'Pedido enviado para la mesa {mesa}')
         return redirect(url_for('ventas_en_punto', mesa=mesa))
 
-    # GET: mostrar plantilla con datos necesarios
-    return render_template('ventas.html', categorias=categorias, mesa=mesa, mesas=mesas, estado_mesas=estado_mesas)
+    mensajes = get_flashed_messages()
+    return render_template('ventas.html', categorias=categorias, mesa=mesa, mesas=mesas, estado_mesas=estado_mesas, mensajes=mensajes)
 
 @app.route('/liberar_mesa/<mesa>', methods=['POST'])
 def liberar_mesa(mesa):

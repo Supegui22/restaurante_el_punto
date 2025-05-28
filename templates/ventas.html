@@ -57,6 +57,13 @@
         button.eliminar-btn:hover {
             background-color: #a71d2a;
         }
+        /* Estilos para Toast */
+        #toastContainer {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1080;
+        }
     </style>
 </head>
 <body class="container py-4">
@@ -118,6 +125,10 @@
         <button type="submit" class="btn btn-primary mt-3" id="btnEnviar" disabled>Enviar a Cocina</button>
     </form>
 
+    <!-- Contenedor para Toast -->
+    <div id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const carrito = {};
     let mesaSeleccionada = null;
@@ -209,14 +220,7 @@
         return confirm('¿Seguro que quieres liberar la mesa ' + mesaSeleccionada + '?');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const urlMesa = "{{ mesa }}";
-        if (urlMesa) {
-            seleccionarMesa(urlMesa);
-        }
-    });
-
-    // NUEVO BLOQUE: Alerta resumen antes de enviar pedido
+    // Confirmación con resumen antes de enviar pedido
     document.getElementById('formVenta').addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -235,10 +239,54 @@
         resumen += `\n💰 Total: $${total.toLocaleString('es-CO')}`;
 
         if (confirm(resumen + "\n\n¿Enviar este pedido a cocina?")) {
+            // Enviar formulario y mostrar toast al recibir respuesta de Flask
             this.submit();
         }
     });
+
+    // Función para mostrar Toast
+    function mostrarToast(mensaje, tipo = 'success') {
+        const toastContainer = document.getElementById('toastContainer');
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-bg-${tipo} border-0`;
+        toastEl.role = 'alert';
+        toastEl.ariaLive = 'assertive';
+        toastEl.ariaAtomic = 'true';
+        toastEl.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${mensaje}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+            </div>
+        `;
+        toastContainer.appendChild(toastEl);
+
+        const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+        toast.show();
+
+        // Remover toast del DOM al cerrarlo
+        toastEl.addEventListener('hidden.bs.toast', () => {
+            toastEl.remove();
+        });
+    }
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Selecciona la mesa que viene por URL o variable 'mesa' para destacar
+        const urlMesa = "{{ mesa }}";
+        if (urlMesa) {
+            seleccionarMesa(urlMesa);
+        }
+
+        // Mostrar toasts de mensajes flash que vienen del backend
+        const mensajes = {{ mensajes|tojson }};
+        mensajes.forEach(mensaje => {
+            mostrarToast(mensaje, 'success');
+        });
+    });
 </script>
+
 
 </body>
 </html>
