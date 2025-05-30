@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Ventas en Punto - Restaurante el Punto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        body {
+            background: #f9fafb;
+        }
+        .mesa {
+            width: 60px;
+            height: 60px;
+            margin: 0 10px 15px 0;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 1.25rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            border: 2px solid #666;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .libre {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border-color: #badbcc;
+        }
+        .ocupada {
+            background-color: #f8d7da;
+            color: #842029;
+            border-color: #f5c2c7;
+        }
+        .mesa-seleccionada {
+            border: 4px solid #0d6efd !important;
+            box-shadow: 0 0 8px #0d6efd;
+        }
+        .productos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill,minmax(130px,1fr));
+            gap: 20px;
+        }
+        .producto-card {
+            background: white;
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            user-select: none;
+        }
+        .producto-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgb(0 0 0 / 0.15);
+        }
+        .producto-card img {
+            width: 100%;
+            max-height: 100px;
+            object-fit: contain;
+            margin-bottom: 8px;
+            border-radius: 8px;
+        }
+        #carrito {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .table thead {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .eliminar-btn {
+            color: white;
+            background-color: #dc3545;
+            border: none;
+            border-radius: 5px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .eliminar-btn:hover {
+            background-color: #a71d2a;
+        }
+        #total {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: right;
+            margin-top: 10px;
+            color: #212529;
+        }
+        #btnEnviar {
+            width: 100%;
+            font-weight: 600;
+        }
+        .header-mesa {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        #liberarForm button {
+            font-weight: 600;
+        }
+        #carrito::-webkit-scrollbar {
+            width: 8px;
+        }
+        #carrito::-webkit-scrollbar-thumb {
+            background-color: #0d6efd;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="container py-4">
+
+    <h1 class="mb-4 text-center">Ventas en Punto</h1>
+
+    <div class="header-mesa">
+        <div>
+            <h4>Selecciona una mesa:</h4>
+            <div id="salon" class="d-flex flex-wrap">
+                {% for mesa in mesas %}
+                <div
+                    class="mesa {{ estado_mesas[mesa] }}"
+                    id="mesa-{{ mesa }}"
+                    onclick="seleccionarMesa('{{ mesa }}')"
+                    title="Mesa {{ mesa }} - {{ estado_mesas[mesa]|capitalize }}"
+                >
+                    {{ mesa }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <form id="liberarForm" method="POST" onsubmit="return confirmarLiberacion()" class="align-self-start">
+            <button type="submit" class="btn btn-danger" id="btnLiberar" disabled>Liberar Mesa</button>
+        </form>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <h3>Productos</h3>
+            {% for categoria, productos in categorias.items() %}
+                <h5 class="mt-3 mb-2">{{ categoria }}</h5>
+                <div class="productos-grid">
+                    {% for producto in productos %}
+                    <div class="producto-card" onclick="agregarProducto('{{ producto.nombre }}', {{ producto.precio }})" title="Precio: ${{ "{:,}".format(producto.precio).replace(",", ".") }}">
+                        <img src="/static/img/{{ producto.imagen }}" alt="{{ producto.nombre }}" />
+                        <div><strong>{{ producto.nombre }}</strong></div>
+                        <div class="text-primary fw-bold">${{ "{:,}".format(producto.precio).replace(",", ".") }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="col-lg-5">
+            <h3>Carrito - Mesa: <span id="mesaSeleccionada">Ninguna</span></h3>
+            <form id="formVenta" method="POST">
+                <input type="hidden" name="mesa" id="inputMesa" value="">
+                <div id="carrito">
+                    <table class="table table-bordered mb-0">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unitario</th>
+                                <th>Subtotal</th>
+                                <th>Eliminar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCarrito"></tbody>
+                    </table>
+                    <div id="total">Total: $0</div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3" id="btnEnviar" disabled>Enviar a Cocina</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1080;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const carrito = {};
+    let mesaSeleccionada = null;
+
+    function seleccionarMesa(mesa) {
+        if (mesaSeleccionada) {
+            document.getElementById('mesa-' + mesaSeleccionada).classList.remove('mesa-seleccionada');
+        }
+        mesaSeleccionada = mesa;
+        document.getElementById('mesa-' + mesa).classList.add('mesa-seleccionada');
+        document.getElementById('mesaSeleccionada').textContent = mesa;
+        document.getElementById('inputMesa').value = mesa;
+        document.getElementById('liberarForm').action = `/liberar_mesa/${mesa}`;
+        actualizarBotones();
+    }
+
+    function agregarProducto(nombre, precio) {
+        if (!mesaSeleccionada) {
+            alert('Selecciona una mesa primero.');
+            return;
+        }
+        carrito[nombre] = carrito[nombre] || { cantidad: 0, precio };
+        carrito[nombre].cantidad += 1;
+        actualizarCarrito();
+    }
+
+    function eliminarProducto(nombre) {
+        delete carrito[nombre];
+        actualizarCarrito();
+    }
+
+    function actualizarCarrito() {
+        const tabla = document.getElementById('tablaCarrito');
+        tabla.innerHTML = '';
+        let total = 0;
+
+        Object.entries(carrito).forEach(([producto, data]) => {
+            const subtotal = data.cantidad * data.precio;
+            total += subtotal;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${producto}</td>
+                <td>${data.cantidad}</td>
+                <td>$${data.precio.toLocaleString('es-CO')}</td>
+                <td>$${subtotal.toLocaleString('es-CO')}</td>
+                <td><button type="button" class="eliminar-btn" onclick="eliminarProducto('${producto}')">X</button></td>
+            `;
+            tabla.appendChild(row);
+        });
+
+        document.getElementById('total').textContent = `Total: $${total.toLocaleString('es-CO')}`;
+        actualizarInputs();
+        actualizarBotones();
+    }
+
+    function actualizarInputs() {
+        const form = document.getElementById('formVenta');
+        form.querySelectorAll('input[name="productos"]').forEach(e => e.remove());
+
+        Object.entries(carrito).forEach(([producto, data]) => {
+            for (let i = 0; i < data.cantidad; i++) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'productos';
+                input.value = producto;
+                form.appendChild(input);
+            }
+        });
+    }
+
+    function actualizarBotones() {
+        const btnEnviar = document.getElementById('btnEnviar');
+        const btnLiberar = document.getElementById('btnLiberar');
+        btnEnviar.disabled = !mesaSeleccionada || Object.keys(carrito).length === 0;
+        btnLiberar.disabled = !mesaSeleccionada;
+    }
+
+    function confirmarLiberacion() {
+        return mesaSeleccionada && confirm(`¿Liberar la mesa ${mesaSeleccionada}?`);
+    }
+
+    document.getElementById('formVenta').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!mesaSeleccionada || Object.keys(carrito).length === 0) {
+            alert('Selecciona una mesa y agrega productos antes de enviar.');
+            return;
+        }
+
+        let resumen = `🧾 Pedido para mesa ${mesaSeleccionada}:\n\n`;
+        let total = 0;
+        Object.entries(carrito).forEach(([producto, data]) => {
+            const subtotal = data.cantidad * data.precio;
+            resumen += `• ${producto} x${data.cantidad} = $${subtotal.toLocaleString('es-CO')}\n`;
+            total += subtotal;
+        });
+        resumen += `\n💵 Total: $${total.toLocaleString('es-CO')}`;
+        alert(resumen);
+        this.submit();
+    });
+</script>
+</body>
+</html>

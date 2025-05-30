@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Pedidos a Domicilio{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2>Pedidos a Domicilio</h2>
+
+  <h3>Nuevo Pedido</h3>
+  <form method="POST" id="form-domicilio">
+    <div class="mb-3">
+      <label for="cliente" class="form-label">Nombre del Cliente</label>
+      <input type="text" id="cliente" name="cliente" class="form-control" required />
+    </div>
+
+    <h4>Productos</h4>
+    {% for categoria, productos in categorias.items() %}
+      <h5>{{ categoria }}</h5>
+      <div class="row mb-3">
+        {% for producto in productos %}
+          <div class="col-6 col-md-3">
+            <div class="producto" data-nombre="{{ producto.nombre }}" data-precio="{{ producto.precio }}">
+              <img src="{{ url_for('static', filename='images/' + producto.imagen) }}" alt="{{ producto.nombre }}" style="height: 100px; object-fit: contain;" />
+              <p class="mb-1">{{ producto.nombre }}</p>
+              <p class="mb-1"><strong>$ {{ '{:,.0f}'.format(producto.precio) }}</strong></p>
+              <div class="d-flex justify-content-center align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-restar">-</button>
+                <input type="text" class="cantidad-input form-control form-control-sm" value="0" readonly style="width: 50px; text-align: center;" />
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-sumar">+</button>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <h4>Resumen del pedido</h4>
+    <ul id="lista-pedido" class="list-group mb-3"></ul>
+    <h5>Total: $ <span id="total-pedido">0</span></h5>
+
+    <input type="hidden" name="productos" id="productos-seleccionados" />
+    <button type="submit" class="btn btn-primary">Guardar Pedido Domicilio</button>
+  </form>
+
+  <hr />
+
+  <h3>Pedidos Pendientes</h3>
+  {% if pendientes %}
+    <ul class="list-group mb-4">
+      {% for pedido in pendientes %}
+        <li class="list-group-item">
+          <strong>{{ pedido.cliente }}</strong> - Fecha: {{ pedido.fecha.strftime('%Y-%m-%d %H:%M') }}
+          <ul>
+            {% for item in pedido.productos %}
+              <li>{{ item.producto }} x{{ item.cantidad }}</li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No hay pedidos pendientes.</p>
+  {% endif %}
+</div>
+{% endblock %}

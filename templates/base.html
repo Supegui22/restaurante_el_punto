@@ -1,47 +1,87 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ventas en Punto</title>
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Estilos personalizados opcionales -->
+  <meta charset="UTF-8" />
+  <title>{% block title %}Ventas en Punto{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   <style>
-    body {
-      background-color: #f8f9fa;
-    }
-    .card img {
-      height: 150px;
-      object-fit: cover;
-    }
-    .card-title {
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
-    .btn-lg {
-      font-size: 1.2rem;
-      padding: 0.75rem;
+    .toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1055;
     }
   </style>
 </head>
 <body>
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="container mt-3">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-          </div>
-        {% endfor %}
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{{ url_for('salon') }}">Ventas_en_Punto</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if session.get('usuario') %}
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'salon' %}active{% endif %}" href="{{ url_for('salon') }}">Salón</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint.startswith('ventas_en_punto') %}active{% endif %}" href="{{ url_for('ventas_en_punto',mesa=1) }}">Ventas</a>
+          </li>
+		  <li class="nav-item">
+            <a class="nav-link {% if request.endpoint.startswith('cocina') %}active{% endif %}" href="{{ url_for('cocina') }}">Cocina</a>
+          </li>
+		  <li class="nav-item">
+			<a class="nav-link {% if request.endpoint == 'pedidos_domicilios' %}active{% endif %}" href="{{ url_for('domicilios') }}">Domicilios</a>
+		  </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'ver_reportes' %}active{% endif %}" href="{{ url_for('reportes') }}">Reportes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('logout') }}">Cerrar sesión</a>
+          </li>
+          {% else %}
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">Login</a>
+          </li>
+          {% endif %}
+        </ul>
       </div>
-    {% endif %}
-  {% endwith %}
+    </div>
+  </nav>
 
-  {% block content %}{% endblock %}
+  <main class="container mt-4">
+    {% block content %}{% endblock %}
+  </main>
 
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Toasts -->
+  <div class="toast-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="toast align-items-center text-bg-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'warning' if category == 'warning' else 'primary' }} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+          <div class="d-flex">
+            <div class="toast-body">
+              {{ message }}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+          </div>
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.querySelectorAll('.toast').forEach(toastEl => {
+      new bootstrap.Toast(toastEl).show();
+    });
+  </script>
+  
+   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,190 @@
+<!-- templates/domicilios.html -->
+{% extends "base.html" %}
+
+{% block title %}Domicilios - Ventas en Punto{% endblock %}
+
+{% block content %}
+<h1>Domicilios (Pedidos Fiados)</h1>
+
+<!-- Formulario para nuevo pedido domicilio -->
+<form method="POST" action="{{ url_for('domicilios') }}" class="mb-4" id="form-domicilios" onsubmit="return validarFormulario()">
+    <div class="mb-3">
+        <label for="cliente" class="form-label">Cliente:</label>
+        <input type="text" name="cliente" id="cliente" class="form-control" required>
+    </div>
+
+   <fieldset class="mb-3">
+    <legend>Productos:</legend>
+    {% for categoria, productos in categorias.items() %}
+        {% set cat_index = loop.index %}
+        <h5>{{ categoria }}</h5>
+        <div class="row">
+            {% for producto in productos %}
+                {% set prod_index = loop.index %}
+                <div class="col-12 col-md-6 col-lg-4 d-flex align-items-center mb-2">
+                    <div class="form-check flex-grow-1">
+                        <input class="form-check-input" type="checkbox" name="productos" value="{{ producto.nombre }}" id="prod-{{ cat_index }}-{{ prod_index }}">
+                        <label class="form-check-label" for="prod-{{ cat_index }}-{{ prod_index }}">
+                            <!-- Aquí puedes poner imagen si tienes -->
+                            <!-- <img src="{{ url_for('static', filename='img/productos/' + producto.imagen) }}" alt="{{ producto.nombre }}" style="height: 40px; margin-right: 8px;"> -->
+                            {{ producto.nombre }} - ${{ producto.precio }}
+                        </label>
+                    </div>
+                    <input type="number" name="cantidad_{{ producto.nombre }}" id="cant-{{ cat_index }}-{{ prod_index }}" min="0" value="0" class="form-control form-control-sm ms-2" style="width: 70px;" disabled>
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+</fieldset>
+
+    <button type="submit" class="btn btn-primary">Guardar Pedido</button>
+</form>
+
+<hr>
+
+<h2>Pedidos a Domicilio Activos</h2>
+<table class="table table-bordered table-striped align-middle">
+    <thead>
+        <tr>
+            <th>ID Pedido</th>
+            <th>Cliente</th>
+            <th>Productos</th>
+            <th>Estado</th>
+            <th>Tiempo activo</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pedido in pedidos %}
+            {% set tiempo_activo_min = (datetime.utcnow() - pedido.fecha).total_seconds() // 60 %}
+            {% set clase_urgente = 'table-danger' if tiempo_activo_min > 120 and pedido.estado == 'activo' else '' %}
+            <tr class="{{ clase_urgente }}">
+                <td>{{ pedido.id }}</td>
+                <td>{{ pedido.cliente_nombre }}</td>
+                <td>
+                    <ul class="mb-0">
+                    {% for detalle in pedido.detalles %}
+                        <li>{{ detalle.cantidad }} x {{ detalle.producto }}</li>
+                    {% endfor %}
+                    </ul>
+                </td>
+                <td>
+                    {% if pedido.estado == 'activo' %}
+                        <span class="badge bg-primary">Activo</span>
+                    {% elif pedido.estado == 'comanda_enviada' %}
+                        <span class="badge bg-warning text-dark">En Cocina</span>
+                    {% elif pedido.estado == 'preparado' %}
+                        <span class="badge bg-success">Preparado</span>
+                    {% elif pedido.estado == 'pagado' %}
+                        <span class="badge bg-secondary">Pagado</span>
+                    {% else %}
+                        {{ pedido.estado }}
+                    {% endif %}
+                </td>
+                <td class="tiempo-activo" data-fecha="{{ pedido.fecha.isoformat() }}Z">
+                    Cargando...
+                </td>
+                <td>
+                    {% if pedido.estado == 'activo' %}
+                        <form class="d-inline" method="POST" action="{{ url_for('enviar_cocina_domicilio', pedido_id=pedido.id) }}" onsubmit="return confirmarAccion('Enviar pedido a cocina?')">
+                            <button type="submit" class="btn btn-sm btn-warning">Enviar a Cocina</button>
+                        </form>
+                    {% elif pedido.estado == 'comanda_enviada' %}
+                        <form class="d-inline" method="POST" action="{{ url_for('marcar_preparado_domicilio', pedido_id=pedido.id) }}" onsubmit="return confirmarAccion('Marcar pedido como preparado?')">
+                            <button type="submit" class="btn btn-sm btn-success">Marcar como Preparado</button>
+                        </form>
+                    {% elif pedido.estado == 'preparado' %}
+                        <form class="d-inline" method="POST" action="{{ url_for('marcar_pagado_domicilio', pedido_id=pedido.id) }}" onsubmit="return confirmarAccion('Marcar pedido como pagado?')">
+                            <button type="submit" class="btn btn-sm btn-info">Marcar como Pagado</button>
+                        </form>
+                    {% else %}
+                        <button class="btn btn-sm btn-secondary" disabled>Sin acciones</button>
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="6" class="text-center">No hay pedidos activos a domicilio.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+  // Activar o desactivar input cantidad según checkbox
+  document.querySelectorAll('input[type=checkbox][name=productos]').forEach(chk => {
+    chk.addEventListener('change', e => {
+      const id = chk.id.replace('prod', 'cant');
+      const cantidadInput = document.getElementById(id);
+      if(chk.checked){
+        cantidadInput.disabled = false;
+        cantidadInput.value = 1;
+        cantidadInput.focus();
+      } else {
+        cantidadInput.disabled = true;
+        cantidadInput.value = 0;
+      }
+    });
+  });
+
+  function validarFormulario() {
+    const cliente = document.getElementById('cliente').value.trim();
+    if (!cliente) {
+      alert("Por favor, ingresa el nombre del cliente.");
+      return false;
+    }
+    const productosCheckeados = Array.from(document.querySelectorAll('input[type=checkbox][name=productos]:checked'));
+    if (productosCheckeados.length === 0) {
+      alert("Por favor, selecciona al menos un producto.");
+      return false;
+    }
+    // Verificar que al menos una cantidad sea > 0
+    let cantidadValida = false;
+    for (const chk of productosCheckeados) {
+      const idCant = chk.id.replace('prod', 'cant');
+      const cantidadInput = document.getElementById(idCant);
+      if (cantidadInput && parseInt(cantidadInput.value) > 0) {
+        cantidadValida = true;
+        break;
+      }
+    }
+    if (!cantidadValida) {
+      alert("Por favor, ingresa una cantidad mayor a 0 para al menos un producto.");
+      return false;
+    }
+    return true;
+  }
+
+  // Confirmaciones en formularios de acciones
+  function confirmarAccion(mensaje){
+    return confirm(mensaje);
+  }
+
+  // Función para mostrar tiempo relativo
+  function tiempoRelativo(fechaISO) {
+    const ahora = new Date();
+    const fecha = new Date(fechaISO);
+    const diffMs = ahora - fecha;
+    const diffSeg = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSeg / 60);
+    const diffHrs = Math.floor(diffMin / 60);
+    const diffDias = Math.floor(diffHrs / 24);
+
+    if(diffDias > 0) return `Hace ${diffDias} día(s)`;
+    if(diffHrs > 0) return `Hace ${diffHrs} hora(s) ${diffMin % 60} minuto(s)`;
+    if(diffMin > 0) return `Hace ${diffMin} minuto(s)`;
+    return 'Hace unos segundos';
+  }
+
+  // Actualizar todos los tiempos activos en tabla
+  function actualizarTiemposActivos(){
+    document.querySelectorAll('.tiempo-activo').forEach(td => {
+      const fechaISO = td.dataset.fecha;
+      td.textContent = tiempoRelativo(fechaISO);
+    });
+  }
+
+  actualizarTiemposActivos();
+  setInterval(actualizarTiemposActivos, 60000); // cada minuto actualizar
+
+</script>
+
+{% endblock %}

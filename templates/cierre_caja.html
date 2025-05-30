@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Cierre de Caja - {{ cierre.fecha.strftime('%d/%m/%Y') }}</h2>
+  <ul class="list-group">
+    <li class="list-group-item">Total Ventas: <strong>${{ cierre.total_ventas }}</strong></li>
+    <li class="list-group-item">Total Efectivo: ${{ cierre.total_efectivo }}</li>
+    <li class="list-group-item">Total Fiado: ${{ cierre.total_fiado }}</li>
+    <li class="list-group-item">Pedidos Facturados: {{ cierre.pedidos_facturados }}</li>
+    <li class="list-group-item">Pedidos Pendientes: {{ cierre.pedidos_pendientes }}</li>
+  </ul>
+
+  <a href="{{ url_for('descargar_pdf_cierre', cierre_id=cierre.id) }}" class="btn btn-danger mt-3">📄 Descargar PDF</a>
+  <a href="{{ url_for('salon') }}" class="btn btn-secondary mt-3">Volver</a>
+</div>
+{% endblock %}

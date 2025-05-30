@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Cocina - Pedidos Activos{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Pedidos Activos en Cocina</h1>
+
+{% if pedidos %}
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        {% for pedido in pedidos %}
+            {% set minutos = ((loop.current_time - pedido.fecha).total_seconds() // 60)|int %}
+            <div class="col pedido-card" id="pedido-{{ pedido.id }}">
+                <div class="card border-{{ 'danger' if minutos >= 20 else 'primary' }}">
+                    <div class="card-header bg-{{ 'danger' if minutos >= 20 else 'primary' }} text-white d-flex justify-content-between align-items-center">
+                        <span>
+                            {% if pedido.mesa %}
+                                Mesa {{ pedido.mesa }}
+                            {% else %}
+                                Domicilio #{{ pedido.id }}
+                            {% endif %}
+                        </span>
+                        <small>{{ minutos }} min</small>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group mb-3">
+                            {% for detalle in pedido.detalles %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ detalle.producto }}
+                                    <span class="badge bg-secondary rounded-pill">{{ detalle.cantidad }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <button class="btn btn-success btn-sm w-100 marcar-preparado" data-id="{{ pedido.id }}">
+                            Marcar como preparado
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        No hay pedidos activos en este momento.
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.marcar-preparado').forEach(button => {
+        button.addEventListener('click', async function () {
+            const id = this.dataset.id;
+            const card = document.getElementById('pedido-' + id);
+
+            const res = await fetch(`/marcar_preparado/${id}`, {
+                method: 'POST'
+            });
+
+            if (res.ok) {
+                card.remove(); // Oculta el pedido visualmente
+            } else {
+                alert("Error al marcar como preparado.");
+            }
+        });
+    });
+</script>
+{% endblock %}

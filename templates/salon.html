@@ -1,123 +1,113 @@
-<!-- templates/salon.html -->
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Salón de Mesas</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f7f7f7;
-        }
+{% extends 'base.html' %}
 
-        .mesa-container {
-            position: relative; /* para el humo */
-            transition: transform 0.3s, box-shadow 0.3s;
-            border-radius: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            width: 120px;
-            height: 140px;
-            padding: 10px;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            text-decoration: none;
-            overflow: visible;
-            user-select: none;
-        }
+{% block title %}Salón de Mesas{% endblock %}
 
-        .mesa-container:hover {
-            transform: scale(1.05);
-            box-shadow: 0px 4px 20px rgba(0,0,0,0.2);
-        }
-
-        .mesa-img {
-            width: 100%;
-            height: 100px;
-            object-fit: contain;
-            pointer-events: none;
-        }
-
-        .libre {
-            background-color: #28a745; /* verde */
-        }
-
-        .ocupada {
-            background-color: #dc3545; /* rojo */
-        }
-
-        .mesa-label {
-            margin-top: 5px;
-            pointer-events: none;
-        }
-
-        /* Botón para liberar mesa */
-        .btn-liberar {
-            position: absolute;
-            top: 5px;
-            right: 8px;
-            background: rgba(255,255,255,0.8);
-            border: none;
-            border-radius: 12px;
-            color: #dc3545;
-            font-weight: bold;
-            width: 24px;
-            height: 24px;
-            line-height: 22px;
-            text-align: center;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            user-select: none;
-        }
-        .btn-liberar:hover {
-            background-color: #dc3545;
-            color: white;
-        }
-
-        /* Humo animado para mesas ocupadas */
-        .ocupada::after {
-            content: "";
-            position: absolute;
-            top: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 30px;
-            height: 30px;
-            pointer-events: none;
-            animation: humoSube 3s linear infinite;
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.7), rgba(255,255,255,0) 70%);
-            border-radius: 50%;
-            filter: blur(3px);
+{% block content %}
+<style>
+    /* Estilos para las mesas */
+    .mesa-container {
+        position: relative; /* para animaciones humo y botón liberar */
+        transition: transform 0.3s, box-shadow 0.3s;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        width: 120px;
+        height: 140px;
+        padding: 10px;
+        color: white;
+        font-weight: bold;
+        font-size: 18px;
+        text-decoration: none;
+        overflow: visible;
+        user-select: none;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+    .mesa-container:hover {
+        transform: scale(1.05);
+        box-shadow: 0px 6px 20px rgba(0,0,0,0.3);
+        z-index: 5;
+    }
+    .mesa-img {
+        width: 100%;
+        height: 100px;
+        object-fit: contain;
+        pointer-events: none;
+        user-select: none;
+    }
+    .libre {
+        background-color: #28a745; /* verde */
+        box-shadow: 0 0 10px #28a745aa;
+    }
+    .ocupada {
+        background-color: #dc3545; /* rojo */
+        box-shadow: 0 0 15px #dc3545cc;
+    }
+    .mesa-label {
+        margin-top: 8px;
+        pointer-events: none;
+        user-select: none;
+    }
+    .btn-liberar {
+        position: absolute;
+        top: 5px;
+        right: 8px;
+        background: rgba(255,255,255,0.8);
+        border: none;
+        border-radius: 12px;
+        color: #dc3545;
+        font-weight: bold;
+        width: 24px;
+        height: 24px;
+        line-height: 22px;
+        text-align: center;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        user-select: none;
+        font-size: 20px;
+    }
+    .btn-liberar:hover {
+        background-color: #dc3545;
+        color: white;
+    }
+    /* Animación humo para mesas ocupadas */
+    .ocupada::after {
+        content: "";
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 30px;
+        height: 30px;
+        pointer-events: none;
+        animation: humoSube 3s linear infinite;
+        background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.7), rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        filter: blur(3px);
+        opacity: 0.8;
+        z-index: 10;
+    }
+    @keyframes humoSube {
+        0% {
+            transform: translateX(-50%) translateY(0) scale(0.7);
             opacity: 0.8;
-            z-index: 10;
         }
-
-        @keyframes humoSube {
-            0% {
-                transform: translateX(-50%) translateY(0) scale(0.7);
-                opacity: 0.8;
-            }
-            50% {
-                opacity: 0.4;
-            }
-            100% {
-                transform: translateX(-50%) translateY(-40px) scale(1.3);
-                opacity: 0;
-            }
+        50% {
+            opacity: 0.4;
         }
-
-        /* Mensaje cuando no hay mesas ocupadas */
-        #mensaje-vacio {
-            font-size: 1.2rem;
-            color: #666;
-            margin-top: 20px;
+        100% {
+            transform: translateX(-50%) translateY(-40px) scale(1.3);
+            opacity: 0;
         }
-    </style>
-</head>
-<body>
+    }
+    #mensaje-vacio {
+        font-size: 1.3rem;
+        color: #666;
+        margin-top: 20px;
+        font-style: italic;
+    }
+</style>
 
 <div class="container mt-5 text-center">
     <h2 class="mb-4">Salón de Mesas</h2>
@@ -125,12 +115,13 @@
         {% for mesa in mesas %}
         <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4 position-relative">
             <a href="{{ url_for('ventas_en_punto', mesa=mesa) }}" class="mesa-container {{ estado_mesas[mesa] }}">
-                <img src="{{ url_for('static', filename='img/mesa.png') }}" class="mesa-img" alt="Mesa">
+                <img src="{{ url_for('static', filename='img/mesa.png') }}" class="mesa-img" alt="Mesa {{ mesa }}">
                 <span class="mesa-label">Mesa {{ mesa }}</span>
             </a>
             {% if estado_mesas[mesa] == 'ocupada' %}
             <form method="POST" action="{{ url_for('liberar_mesa', mesa=mesa) }}" style="position: absolute; top: 5px; right: 8px;">
-                <button type="submit" class="btn-liberar" title="Liberar Mesa {{ mesa }}" onclick="return confirm('¿Seguro que quieres liberar la mesa {{ mesa }}?')">&times;</button>
+                <button type="submit" class="btn-liberar" title="Liberar Mesa {{ mesa }}"
+                onclick="return confirm('¿Seguro que quieres liberar la mesa {{ mesa }}?')">&times;</button>
             </form>
             {% endif %}
         </div>
@@ -141,6 +132,4 @@
     <div id="mensaje-vacio">No hay mesas ocupadas en este momento.</div>
     {% endif %}
 </div>
-
-</body>
-</html>
+{% endblock %}

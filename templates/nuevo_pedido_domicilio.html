@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo Pedido Domicilio{% endblock %}
+{% block content %}
+<h2>Nuevo Pedido Domicilio</h2>
+<form method="POST">
+    <div class="mb-3">
+        <label for="cliente_nombre" class="form-label">Nombre del Cliente</label>
+        <input type="text" class="form-control" id="cliente_nombre" name="cliente_nombre" required>
+    </div>
+    <div class="mb-3">
+        <label for="cliente_telefono" class="form-label">Teléfono</label>
+        <input type="text" class="form-control" id="cliente_telefono" name="cliente_telefono">
+    </div>
+    <div class="mb-3">
+        <label for="cliente_direccion" class="form-label">Dirección</label>
+        <textarea class="form-control" id="cliente_direccion" name="cliente_direccion" rows="2" required></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Crear Pedido</button>
+</form>
+{% endblock %}
