@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Cambiar contraseña{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">Cambiar Contraseña</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="mb-3">
+        <label>Contraseña actual</label>
+        <input type="password" name="actual" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label>Nueva contraseña</label>
+        <input type="password" name="nueva" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label>Confirmar nueva contraseña</label>
+        <input type="password" name="confirmar" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-success">Guardar</button>
+      <a href="{{ url_for('perfil') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

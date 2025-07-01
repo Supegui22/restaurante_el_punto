@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Gestión de Permisos por Rol</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="POST" action="{{ url_for('crear_rol') }}" class="border p-3 rounded bg-white shadow-sm">
+                <h5 class="mb-3">Crear nuevo Rol</h5>
+                <div class="input-group">
+                    <input type="text" name="nombre_rol" class="form-control" placeholder="Nombre del rol" required>
+                    <button type="submit" class="btn btn-success">Agregar Rol</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <form method="POST" action="{{ url_for('crear_permiso') }}" class="border p-3 rounded bg-white shadow-sm">
+                <h5 class="mb-3">Crear nuevo Permiso</h5>
+                <div class="input-group">
+                    <input type="text" name="nombre_permiso" class="form-control" placeholder="Nombre del permiso" required>
+                    <button type="submit" class="btn btn-success">Agregar Permiso</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 🔁 Formulario de selección de rol (GET) -->
+    <form method="GET" action="{{ url_for('gestionar_permisos') }}" class="mb-4 border p-4 rounded shadow-sm bg-light">
+        <div class="mb-3">
+            <label for="rol_id" class="form-label">Seleccionar Rol:</label>
+            <select name="rol_id" id="rol_id" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Selecciona un rol --</option>
+                {% for rol in roles %}
+                    <option value="{{ rol.id }}" {% if rol.id == rol_id %}selected{% endif %}>{{ rol.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    {% if rol_id %}
+    <!-- 📝 Formulario para guardar permisos (POST) -->
+    <form method="POST" action="{{ url_for('gestionar_permisos') }}" class="border p-4 rounded shadow-sm bg-light">
+        <input type="hidden" name="rol_id" value="{{ rol_id }}">
+
+        <div class="mb-3">
+            <label class="form-label">Permisos Asignados:</label>
+            <div class="row">
+                {% for permiso in permisos %}
+                    <div class="col-md-4 mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="permisos" id="permiso_{{ permiso.id }}"
+                                   value="{{ permiso.id }}"
+                                   {% if permiso.id in permisos_asignados %}checked{% endif %}>
+                            <label class="form-check-label" for="permiso_{{ permiso.id }}">
+                                {{ permiso.nombre }}
+                            </label>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Guardar Permisos</button>
+    </form>
+    {% endif %}
+
+    <h4 class="mt-5">Resumen de Permisos por Rol</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Rol</th>
+                    <th>Permisos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rol, permisos in resumen_permisos.items() %}
+                <tr>
+                    <td>{{ rol }}</td>
+                    <td>
+                        {% for permiso in permisos %}
+                            <span class="badge bg-success">{{ permiso }}</span>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Gasto{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-4">Editar Gasto</h2>
+
+  <div class="card">
+    <div class="card-body">
+      <form method="POST" enctype="multipart/form-data">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="fecha" class="form-label">Fecha</label>
+            <input type="date" class="form-control" name="fecha" value="{{ gasto.fecha.strftime('%Y-%m-%d') }}" required>
+          </div>
+          <div class="col-md-3">
+            <label for="proveedor" class="form-label">Proveedor</label>
+            <input type="text" class="form-control" name="proveedor" value="{{ gasto.proveedor }}" required>
+          </div>
+          <div class="col-md-3">
+            <label for="categoria" class="form-label">Categoría</label>
+            <select name="categoria" class="form-select" required>
+              <option value="Insumos" {% if gasto.categoria == 'Insumos' %}selected{% endif %}>Insumos</option>
+              <option value="Servicios" {% if gasto.categoria == 'Servicios' %}selected{% endif %}>Servicios</option>
+              <option value="Otros" {% if gasto.categoria == 'Otros' %}selected{% endif %}>Otros</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="valor" class="form-label">Valor</label>
+            <input type="number" class="form-control" name="valor" value="{{ gasto.valor }}" required>
+          </div>
+          <div class="col-md-6">
+            <label for="descripcion" class="form-label">Descripción</label>
+            <input type="text" class="form-control" name="descripcion" value="{{ gasto.descripcion }}" required>
+          </div>
+          <div class="col-md-3">
+            <label for="estado" class="form-label">Estado</label>
+            <select name="estado" class="form-select" required>
+              <option value="pendiente" {% if gasto.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+              <option value="pagado" {% if gasto.estado == 'pagado' %}selected{% endif %}>Pagado</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="archivo" class="form-label">Factura PDF (opcional)</label>
+            <input type="file" name="archivo" class="form-control" accept="application/pdf">
+            {% if gasto.archivo %}
+              <small class="text-muted d-block mt-1">
+                Archivo actual: 
+                <a href="{{ url_for('static', filename='facturas/' ~ gasto.archivo) }}" target="_blank">
+                  {{ gasto.archivo }}
+                </a>
+              </small>
+            {% endif %}
+          </div>
+        </div>
+        <div class="mt-4 text-end">
+          <a href="{{ url_for('gastos') }}" class="btn btn-secondary">Cancelar</a>
+          <button type="submit" class="btn btn-success">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Consulta de Pedidos</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; }
+        h1 { color: #333; }
+        .pedido { background: #fff; border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+        .pedido h2 { margin-top: 0; color: #007bff; }
+        .detalles { margin-left: 20px; }
+        .detalle { margin-bottom: 5px; }
+        .tipo-salon { color: green; }
+        .tipo-domicilio { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>Consulta de Pedidos</h1>
+
+    {% for pedido in pedidos %}
+        <div class="pedido">
+            <h2>
+                Pedido #{{ pedido.id }} - 
+                {% if pedido.tipo == 'salon' %}
+                    <span class="tipo-salon">Mesa: {{ pedido.mesa }}</span>
+                {% else %}
+                    <span class="tipo-domicilio">Domicilio: {{ pedido.cliente_nombre }}</span>
+                {% endif %}
+            </h2>
+            <p><strong>Fecha:</strong> {{ pedido.fecha.strftime('%d/%m/%Y %H:%M') }} |
+               <strong>Estado:</strong> {{ pedido.estado }} |
+               <strong>Usuario:</strong> {{ pedido.usuario }}
+            </p>
+
+            <div class="detalles">
+                <h4>Productos:</h4>
+                {% for det in pedido.detalles %}
+                    <div class="detalle">
+                        - {{ det.producto }} x{{ det.cantidad }} = ${{ "%.2f"|format(det.precio_total) }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+</body>
+</html>

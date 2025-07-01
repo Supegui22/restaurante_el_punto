@@ -1,16 +1,132 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <div class="container mt-4">
-  <h2>Cierre de Caja - {{ cierre.fecha.strftime('%d/%m/%Y') }}</h2>
-  <ul class="list-group">
-    <li class="list-group-item">Total Ventas: <strong>${{ cierre.total_ventas }}</strong></li>
-    <li class="list-group-item">Total Efectivo: ${{ cierre.total_efectivo }}</li>
-    <li class="list-group-item">Total Fiado: ${{ cierre.total_fiado }}</li>
-    <li class="list-group-item">Pedidos Facturados: {{ cierre.pedidos_facturados }}</li>
-    <li class="list-group-item">Pedidos Pendientes: {{ cierre.pedidos_pendientes }}</li>
+  <h2 class="mb-4">💰 Cierre de Caja - {{ cierre.fecha.strftime('%d/%m/%Y') }}</h2>
+
+  <!-- Resumen -->
+  <ul class="list-group mb-4">
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Total Ventas:</span>
+      <strong class="text-success">${{ '{:,.0f}'.format(cierre.total_ventas) }}</strong>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Total Efectivo:</span>
+      <span>${{ '{:,.0f}'.format(cierre.total_efectivo) }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Total Fiado:</span>
+      <span>${{ '{:,.0f}'.format(cierre.total_fiado) }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Pedidos Facturados:</span>
+      <span>{{ cierre.pedidos_facturados }}</span>
+    </li>
+    <li class="list-group-item d-flex justify-content-between">
+      <span>Pedidos Pendientes:</span>
+      <span>{{ cierre.pedidos_pendientes }}</span>
+    </li>
   </ul>
 
-  <a href="{{ url_for('descargar_pdf_cierre', cierre_id=cierre.id) }}" class="btn btn-danger mt-3">📄 Descargar PDF</a>
-  <a href="{{ url_for('salon') }}" class="btn btn-secondary mt-3">Volver</a>
+  <!-- Tabla de pedidos facturados -->
+  {% if pedidos_facturados_list %}
+  <h4 class="mt-4 text-primary">📄 Pedidos Facturados</h4>
+  <div class="table-responsive mb-4">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Tipo</th>
+          <th>Mesa / Cliente</th>
+          <th>Total</th>
+          <th>Hora</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos_facturados_list %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            {% if p.tipo == 'salon' %}
+              🪑 Salón
+            {% else %}
+              🏠 Domicilio
+            {% endif %}
+          </td>
+          <td>{{ p.cliente }}</td>
+          <td>${{ '{:,.0f}'.format(p.total) }}</td>
+          <td>{{ p.fecha.strftime('%H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Tabla de pedidos fiados -->
+  {% if pedidos_fiados_list %}
+  <h4 class="mt-4 text-danger">📌 Pedidos Fiados</h4>
+  <div class="table-responsive mb-4">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Total</th>
+          <th>Hora</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos_fiados_list %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ p.cliente }}</td>
+          <td>${{ '{:,.0f}'.format(p.total) }}</td>
+          <td>{{ p.fecha.strftime('%H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Tabla de fiados cobrados -->
+  {% if pedidos_fiados_cobrados %}
+  <h4 class="mt-4 text-success">💸 Pedidos Fiados Cobrados</h4>
+  <div class="mb-2"><strong>Total Cobrados:</strong> ${{ '{:,.0f}'.format(total_fiados_cobrados) }}</div>
+  <div class="table-responsive mb-4">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Total</th>
+		  <th>Fiado el</th>
+          <th>Fecha de Cobro</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos_fiados_cobrados %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ p.cliente }}</td>
+          <td>${{ '{:,.0f}'.format(p.total) }}</td>
+		  <td>{{ p.fecha.strftime('%d/%m/%Y') }}</td> 
+          <td>{{ p.fecha_pago.strftime('%d/%m/%Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Acciones -->
+  <div class="d-flex gap-2">
+    <form action="{{ url_for('guardar_cierre_caja', cierre_id=cierre.id) }}" method="POST" class="d-inline">
+      <button type="submit" class="btn btn-warning">💾 Guardar Cierre</button>
+    </form>
+    <a href="{{ url_for('descargar_pdf_cierre', cierre_id=cierre.id) }}" class="btn btn-danger" target="_blank">📄 Descargar PDF</a>
+    <a href="{{ url_for('inicio') }}" class="btn btn-secondary">↩️ Volver</a>
+  </div>
 </div>
 {% endblock %}

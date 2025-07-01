@@ -4,62 +4,394 @@
 
 {% block content %}
 <div class="container py-4">
-  <h2>Pedidos a Domicilio</h2>
+  <h2 class="mb-4">Pedidos a Domicilio</h2>
 
-  <h3>Nuevo Pedido</h3>
-  <form method="POST" id="form-domicilio">
-    <div class="mb-3">
-      <label for="cliente" class="form-label">Nombre del Cliente</label>
-      <input type="text" id="cliente" name="cliente" class="form-control" required />
+  <div class="row">
+    <!-- COLUMNA IZQUIERDA -->
+    <div class="col-md-7">
+      <!-- FORMULARIO NUEVO PEDIDO -->
+      <h3 class="text-lg font-bold mb-3">Nuevo Pedido</h3>
+      <form method="POST" action="{{ url_for('domicilios') }}" id="form-domicilio">
+        <!-- Formulario cliente -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label for="cliente" class="form-label">Nombre del Cliente</label>
+            <input type="text" id="cliente" name="cliente" class="form-control"  />
+          </div>
+          <div class="col-md-4">
+            <label for="telefono" class="form-label">Teléfono</label>
+            <input type="text" id="telefono" name="telefono" class="form-control"  />
+          </div>
+          <div class="col-md-4">
+            <label for="direccion" class="form-label">Dirección</label>
+            <input type="text" id="direccion" name="direccion" class="form-control"  />
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="estado_pago" class="form-label">Estado del Pedido</label>
+          <select id="estado_pago" name="estado_pago" class="form-select" required>
+            <option value="fiado">Fiado (se pagará después)</option>
+            <option value="pago">Pago (pagado al momento)</option>
+          </select>
+        </div>
+
+        <!-- Selección de productos -->
+        <h4 class="mt-4">Seleccionar Productos</h4>
+        <div class="mb-3">
+          {% for categoria, productos in categorias.items() %}
+            <button type="button" class="btn btn-outline-primary btn-sm mb-2 me-2 categoria-btn {{ 'active' if loop.first else '' }}" data-categoria="{{ categoria }}">
+              {{ categoria }}
+            </button>
+          {% endfor %}
+        </div>
+
+        {% for categoria, productos in categorias.items() %}
+		<div class="categoria-productos mb-4" data-categoria="{{ categoria }}" style="display: {{ 'block' if loop.first else 'none' }};">
+		<h5>{{ categoria }}</h5>
+		<div class="productos-paginados row" data-categoria="{{ categoria }}">
+			{% for producto in productos %}
+			<div class="producto-item col-6 col-md-4 mb-3" data-categoria="{{ categoria }}" style="display: none;">
+				<div class="producto p-2 border rounded text-center" data-id="{{ producto.id }}" data-nombre="{{ producto.nombre }}" data-precio="{{ producto.precio }}">
+				{% if producto.imagen %}
+						<img src="{{ url_for('static', filename='images/' + producto.imagen) }}" class="card-img-top mx-auto d-block" alt="{{ producto.nombre }}" style="height: 120px; object-fit: contain;">
+					{% else %}
+						<img src="{{ url_for('static', filename='images/default.png') }}" class="card-img-top mx-auto d-block" alt="Sin imagen" style="height: 120px; object-fit: contain;">
+					{% endif %}
+				<p class="mb-0">{{ producto.nombre }}</p>
+				<p class="mb-1"><strong>$ {{ '{:,.0f}'.format(producto.precio) }}</strong></p>
+				<p class="mb-1 text-muted">Stock: {{ producto.stock }}</p>
+				<div class="d-flex justify-content-center align-items-center gap-2">
+					<button type="button" class="btn btn-sm btn-outline-secondary btn-restar">-</button>
+					<input type="text" class="cantidad-input form-control form-control-sm" value="0" readonly style="width: 40px; text-align: center;" />
+					<button type="button" class="btn btn-sm btn-outline-secondary btn-sumar">+</button>
+				</div>
+				</div>
+			</div>
+			{% endfor %}
+		</div>
+
+  <!-- Controles de paginación -->
+  <div class="pagination-controls d-flex justify-content-between align-items-center mt-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary prev-page">Anterior</button>
+    <span class="page-indicator small text-muted">Página 1</span>
+    <button type="button" class="btn btn-sm btn-outline-secondary next-page">Siguiente</button>
+  </div>
+</div>
+
+        {% endfor %}
+       </form>
     </div>
 
-    <h4>Productos</h4>
-    {% for categoria, productos in categorias.items() %}
-      <h5>{{ categoria }}</h5>
-      <div class="row mb-3">
-        {% for producto in productos %}
-          <div class="col-6 col-md-3">
-            <div class="producto" data-nombre="{{ producto.nombre }}" data-precio="{{ producto.precio }}">
-              <img src="{{ url_for('static', filename='images/' + producto.imagen) }}" alt="{{ producto.nombre }}" style="height: 100px; object-fit: contain;" />
-              <p class="mb-1">{{ producto.nombre }}</p>
-              <p class="mb-1"><strong>$ {{ '{:,.0f}'.format(producto.precio) }}</strong></p>
-              <div class="d-flex justify-content-center align-items-center gap-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary btn-restar">-</button>
-                <input type="text" class="cantidad-input form-control form-control-sm" value="0" readonly style="width: 50px; text-align: center;" />
-                <button type="button" class="btn btn-sm btn-outline-secondary btn-sumar">+</button>
-              </div>
+<!-- COLUMNA DERECHA -->
+<div class="col-md-5">
+  <!-- BOTONES FILTRO -->
+  <div class="mb-3 d-flex gap-2">
+    <button id="btn-pendientes" class="btn btn-primary">Pedidos Pendientes</button>
+    <button id="btn-fiados" class="btn btn-outline-primary">Pedidos Fiados</button>
+  </div>
+  <!-- PANEL CARRITO / RESUMEN -->
+	<div class="card mb-4 shadow-sm" id="panel-carrito">
+	<div class="card-header bg-primary text-white">
+		<h5 class="mb-0">Resumen del Pedido</h5>
+	</div>
+	<div class="card-body">
+		<div id="miniaturas-seleccionadas" class="d-flex gap-2 flex-wrap mb-3"></div>
+		<ul id="lista-pedido" class="list-group mb-3"></ul>
+		<h5>Total: $ <span id="total-pedido">0</span></h5>
+		<input type="hidden" name="productos" id="productos-seleccionados" form="form-domicilio" />
+		<button type="submit" class="btn btn-success w-100 mt-3" form="form-domicilio">Guardar Pedido Domicilio</button>
+	</div>
+	</div>
+
+
+  <!-- PEDIDOS PENDIENTES -->
+  <div id="seccion-pendientes">
+    <h4 class="mb-3">Pedidos Pendientes</h4>
+    {% if pedidos_pendientes %}
+      {% for pedido in pedidos_pendientes %}
+        {% set minutos_pasados = (now - pedido.fecha).total_seconds() // 60 %}
+        <div class="card mb-3 shadow-sm border-warning">
+          <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ pedido.cliente_nombre }}</strong>
+              <span class="ms-2 small text-muted">({{ minutos_pasados }} min)</span>
             </div>
+            {% if minutos_pasados > 60 %}
+              <span class="badge bg-danger">Urgente</span>
+            {% elif minutos_pasados > 30 %}
+              <span class="badge bg-secondary text-light">En espera</span>
+            {% endif %}
           </div>
-        {% endfor %}
-      </div>
-    {% endfor %}
+          <div class="card-body">
+            <p class="mb-1"><strong>Fecha:</strong> {{ pedido.fecha.strftime('%Y-%m-%d %H:%M') }}</p>
+            <p class="mb-1"><strong>Teléfono:</strong> {{ pedido.cliente_telefono }}</p>
+            <p class="mb-1"><strong>Dirección:</strong> {{ pedido.cliente_direccion }}</p>
+			<p class="mb-1"><strong>Estado:</strong> <span class="badge bg-info text-dark">{{ pedido.estado }}</p>
+            <p class="mb-1"><strong>Forma Pago:</strong> <span class="badge bg-info text-dark">{{ pedido.estado_pago }}</span></p>
+            <hr>
+            <h6>Productos:</h6>
+			<ul class="list-unstyled mb-0">
+			{% for item in pedido.detalles %}
+				<li>
+				• {{ item.producto }} x{{ item.cantidad }} — ${{ '{:,.0f}'.format(item.precio) }}
+			
+				<form method="POST" action="{{ url_for('actualizar_descripcion') }}" class="d-flex align-items-center mt-1 mb-2">
+					<input type="hidden" name="detalle_id" value="{{ item.id }}">
+					<input type="text" name="nueva_descripcion" value="{{ item.descripcion or '' }}"
+						class="form-control form-control-sm me-2" placeholder="Nota cocina">
+					<button type="submit" class="btn btn-sm btn-primary">💾</button>
+				</form>
+				</li>
+			{% endfor %}
+			</ul>
 
-    <h4>Resumen del pedido</h4>
-    <ul id="lista-pedido" class="list-group mb-3"></ul>
-    <h5>Total: $ <span id="total-pedido">0</span></h5>
+			<form method="POST" action="{{ url_for('facturar_pedido') }}" class="mt-3">
+				<input type="hidden" name="id_pedido" value="{{ pedido.id }}">
+				<button type="submit" class="btn btn-sm btn-success w-100">
+					<i class="bi bi-receipt"></i> Facturar Pedido
+				</button>
+			</form>
 
-    <input type="hidden" name="productos" id="productos-seleccionados" />
-    <button type="submit" class="btn btn-primary">Guardar Pedido Domicilio</button>
-  </form>
-
-  <hr />
-
-  <h3>Pedidos Pendientes</h3>
-  {% if pendientes %}
-    <ul class="list-group mb-4">
-      {% for pedido in pendientes %}
-        <li class="list-group-item">
-          <strong>{{ pedido.cliente }}</strong> - Fecha: {{ pedido.fecha.strftime('%Y-%m-%d %H:%M') }}
-          <ul>
-            {% for item in pedido.productos %}
-              <li>{{ item.producto }} x{{ item.cantidad }}</li>
-            {% endfor %}
-          </ul>
-        </li>
+          </div>
+        </div>
       {% endfor %}
-    </ul>
-  {% else %}
-    <p>No hay pedidos pendientes.</p>
-  {% endif %}
+    {% else %}
+      <p class="text-muted">No hay pedidos pendientes.</p>
+    {% endif %}
+  </div>
+
+  <!-- PEDIDOS FIADOS -->
+  <div id="seccion-fiados" style="display:none;">
+    <h4 class="mt-4 mb-3">Fiados para Cobrar el Sábado</h4>
+    {% if pedidos_fiados_cobrar %}
+      {% for pedido in pedidos_fiados_cobrar %}
+        <div class="card mb-3 border-success shadow-sm">
+          <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <strong>{{ pedido.cliente_nombre }}</strong>
+            <small>{{ pedido.fecha.strftime('%Y-%m-%d %H:%M') }}</small>
+          </div>
+          <div class="card-body">
+            <p class="mb-1"><strong>Teléfono:</strong> {{ pedido.cliente_telefono }}</p>
+            <p class="mb-1"><strong>Dirección:</strong> {{ pedido.cliente_direccion }}</p>
+            <p class="mb-1"><strong>Estado:</strong> <span class="badge bg-light text-dark">{{ pedido.estado_pago }}</span></p>
+            <hr>
+            <h6>Productos:</h6>
+            <ul class="list-unstyled mb-0">
+              {% for item in pedido.detalles %}
+					<li>
+						• {{ item.producto }} x{{ item.cantidad }} — ${{ '{:,.0f}'.format(item.precio) }}
+						{% if item.descripcion %}
+						<br><small class="text-danger">📝 {{ item.descripcion }}</small>
+						{% endif %}
+					</li>
+				{% endfor %}
+
+            </ul>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-muted">No hay pedidos fiados para cobrar el próximo sábado.</p>
+    {% endif %}
+  </div>
 </div>
+
+  </div>
+</div>
+
+<script>
+function actualizarResumen() {
+  const lista = document.getElementById('lista-pedido');
+  const totalSpan = document.getElementById('total-pedido');
+  const miniaturasDiv = document.getElementById('miniaturas-seleccionadas');
+  const productos = [];
+  let total = 0;
+  lista.innerHTML = '';
+  miniaturasDiv.innerHTML = '';
+
+  document.querySelectorAll('.producto').forEach(prod => {
+    const nombre = prod.dataset.nombre;
+    const precio = parseInt(prod.dataset.precio);
+    const productoId = prod.dataset.id;
+    const cantidad = parseInt(prod.querySelector('.cantidad-input').value);
+    if (cantidad > 0) {
+      productos.push({
+        producto_id: parseInt(productoId),
+        producto: nombre,
+        precio: precio,
+        cantidad: cantidad,
+        descripcion: '' // Se actualizará justo antes del submit
+      });
+
+      const li = document.createElement('li');
+      li.classList.add('list-group-item');
+      li.innerHTML = `
+        <strong>${nombre}</strong> x${cantidad} - $${(precio * cantidad).toLocaleString()}
+        <br>
+        <input type="text" class="form-control form-control-sm mt-1 descripcion-input"
+               placeholder="Nota para cocina (opcional)" data-id="${productoId}" />
+      `;
+      lista.appendChild(li);
+      total += precio * cantidad;
+
+      const imgSrc = prod.querySelector('img').src;
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      img.alt = nombre;
+      img.style.height = '60px';
+      img.style.objectFit = 'contain';
+      img.classList.add('border', 'rounded');
+      miniaturasDiv.appendChild(img);
+    }
+  });
+
+  totalSpan.textContent = total.toLocaleString();
+  document.getElementById('productos-seleccionados').value = JSON.stringify(productos);
+}
+
+function paginarProductos(categoria) {
+  const productos = document.querySelectorAll(`.producto-item[data-categoria="${categoria}"]`);
+  const pageIndicator = document.querySelector(`.categoria-productos[data-categoria="${categoria}"] .page-indicator`);
+  const perPage = 12;
+  let currentPage = 1;
+
+  function mostrarPagina(page) {
+    currentPage = page;
+    productos.forEach((p, i) => {
+      p.style.display = (i >= (page - 1) * perPage && i < page * perPage) ? 'block' : 'none';
+    });
+    const totalPages = Math.ceil(productos.length / perPage);
+    pageIndicator.textContent = `Página ${page} de ${totalPages}`;
+  }
+
+  mostrarPagina(1);
+
+  const prevBtn = document.querySelector(`.categoria-productos[data-categoria="${categoria}"] .prev-page`);
+  const nextBtn = document.querySelector(`.categoria-productos[data-categoria="${categoria}"] .next-page`);
+
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) mostrarPagina(currentPage - 1);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < Math.ceil(productos.length / perPage)) {
+      mostrarPagina(currentPage + 1);
+    }
+  });
+
+  return mostrarPagina;
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll('.btn-sumar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = btn.parentElement.querySelector('.cantidad-input');
+      input.value = parseInt(input.value) + 1;
+      actualizarResumen();
+    });
+  });
+
+  document.querySelectorAll('.btn-restar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = btn.parentElement.querySelector('.cantidad-input');
+      input.value = Math.max(0, parseInt(input.value) - 1);
+      actualizarResumen();
+    });
+  });
+
+  const paginadores = {};
+  document.querySelectorAll('.categoria-productos').forEach(cat => {
+    const categoria = cat.dataset.categoria;
+    paginadores[categoria] = paginarProductos(categoria);
+  });
+
+  document.querySelectorAll('.categoria-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const categoria = btn.dataset.categoria;
+
+      document.querySelectorAll('.categoria-productos').forEach(div => {
+        div.style.display = 'none';
+      });
+      document.querySelector(`.categoria-productos[data-categoria="${categoria}"]`).style.display = 'block';
+
+      document.querySelectorAll('.categoria-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  const primera = document.querySelector('.categoria-btn.active');
+  if (primera) {
+    const cat = primera.dataset.categoria;
+    document.querySelector(`.categoria-productos[data-categoria="${cat}"]`).style.display = 'block';
+  }
+
+  actualizarResumen();
+
+  const btnPendientes = document.getElementById('btn-pendientes');
+  const btnFiados = document.getElementById('btn-fiados');
+  const seccionPendientes = document.getElementById('seccion-pendientes');
+  const seccionFiados = document.getElementById('seccion-fiados');
+
+  function mostrarPendientes() {
+    seccionPendientes.style.display = 'block';
+    seccionFiados.style.display = 'none';
+    btnPendientes.classList.add('btn-primary');
+    btnPendientes.classList.remove('btn-outline-primary');
+    btnFiados.classList.add('btn-outline-primary');
+    btnFiados.classList.remove('btn-primary');
+  }
+
+  function mostrarFiados() {
+    seccionPendientes.style.display = 'none';
+    seccionFiados.style.display = 'block';
+    btnFiados.classList.add('btn-primary');
+    btnFiados.classList.remove('btn-outline-primary');
+    btnPendientes.classList.add('btn-outline-primary');
+    btnPendientes.classList.remove('btn-primary');
+  }
+
+  btnPendientes.addEventListener('click', mostrarPendientes);
+  btnFiados.addEventListener('click', mostrarFiados);
+  mostrarPendientes();
+
+  const formDomicilio = document.getElementById("form-domicilio");
+  if (formDomicilio) {
+    formDomicilio.addEventListener("submit", function (e) {
+      // 🔁 Actualizar las descripciones dinámicamente antes de enviar
+      const productos = JSON.parse(document.getElementById('productos-seleccionados').value || '[]');
+      document.querySelectorAll('.descripcion-input').forEach(input => {
+        const id = input.dataset.id;
+        const prod = productos.find(p => p.producto_id == id);
+        if (prod) {
+          prod.descripcion = input.value.trim();
+        }
+      });
+      document.getElementById('productos-seleccionados').value = JSON.stringify(productos);
+
+      const cliente = document.getElementById("cliente").value.trim();
+      const telefono = document.getElementById("telefono").value.trim();
+      const direccion = document.getElementById("direccion").value.trim();
+      const productosJSON = document.getElementById("productos-seleccionados").value.trim();
+
+      let mensaje = "";
+      if (!cliente || !telefono || !direccion) {
+        mensaje += "❌ Por favor ingresa todos los datos del cliente.\n";
+      }
+      if (!productosJSON || productosJSON === "[]") {
+        mensaje += "❌ Debes seleccionar al menos un producto.\n";
+      }
+
+      if (mensaje !== "") {
+        e.preventDefault();
+        alert(mensaje);
+      }
+    });
+  }
+});
+</script>
+
+
+
+
 {% endblock %}

@@ -4,91 +4,315 @@
 
 {% block content %}
 <div class="container py-4">
-  <h2>Pedidos en Cocina</h2>
+  <h2 class="mb-4 text-center">Pedidos en Cocina</h2>
 
-  <h3>Pedidos por Mesa</h3>
-  {% if pedidos_mesas %}
-    <div class="list-group mb-4">
-      {% for pedido in pedidos_mesas %}
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-          <div>
-            <strong>Mesa {{ pedido.mesa }}</strong> -
-            {{ pedido.estado|capitalize }} -
-            <small class="text-muted" data-fecha="{{ pedido.fecha.isoformat() }}">Creados hace: <span class="tiempo"></span></small>
-            <ul>
-              {% for item in pedido.productos %}
-                <li>{{ item.producto }} x{{ item.cantidad }}</li>
-              {% endfor %}
-            </ul>
+  <div class="cocina-secciones">
+
+    <!-- Pedidos por Mesa -->
+    <section class="pedidos-mesa">
+      <h3 class="text-primary text-center mb-3">Pedidos por Mesa</h3>
+
+      <h5>Activos</h5>
+      <div class="lista-pedidos">
+        {% set activos_mesa = false %}
+        {% for pedido in pedidos_mesas if pedido.estado != 'preparado' %}
+          {% set activos_mesa = true %}
+          <div class="pedido tarjeta activo" data-fecha="{{ pedido.fecha.isoformat() }}" data-id="{{ pedido.id }}">
+            <div class="pedido-header">
+              <strong>Mesa {{ pedido.mesa }}</strong>
+              <span class="estado">{{ pedido.estado|capitalize }}</span>
+            </div>
+            <small class="fecha">
+              Creados hace: <span class="tiempo"></span><br>
+              <span class="text-muted">{{ pedido.fecha | hora_local }}</span>
+            </small>
+            <ul class="productos">
+				{% for item in pedido.productos %}
+				<li>
+					{{ item.producto }} x{{ item.cantidad }}
+					{% if item.descripcion %}
+					<br>
+						<div class="descripcion-cocina">📝 {{ item.descripcion }}</div>
+					{% endif %}
+				</li>
+				{% endfor %}
+			</ul>
+
+            <button 
+              class="btn btn-success btn-sm marcar-preparado" 
+              data-id="{{ pedido.id }}">
+              Marcar como preparado
+            </button>
           </div>
-          {% if pedido.estado != 'preparado' %}
-            <form method="POST" action="{{ url_for('marcar_preparado', tipo='mesa', id=pedido.mesa) }}">
-              <button type="submit" class="btn btn-success">Marcar como preparado</button>
-            </form>
-          {% else %}
-            <span class="badge bg-success">Preparado</span>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p>No hay pedidos activos por mesa.</p>
-  {% endif %}
+        {% endfor %}
+        {% if not activos_mesa %}
+          <p>No hay pedidos activos por mesa.</p>
+        {% endif %}
+      </div>
 
-  <h3>Pedidos a Domicilio</h3>
-  {% if pedidos_domicilios %}
-    <div class="list-group">
-      {% for pedido in pedidos_domicilios %}
-        <div class="list-group-item d-flex justify-content-between align-items-center">
-          <div>
-            <strong>Cliente: {{ pedido.cliente }}</strong> -
-            {{ pedido.estado|capitalize }} -
-            <small class="text-muted" data-fecha="{{ pedido.fecha.isoformat() }}">Creados hace: <span class="tiempo"></span></small>
-            <ul>
-              {% for item in pedido.productos %}
-                <li>{{ item.producto }} x{{ item.cantidad }}</li>
-              {% endfor %}
-            </ul>
+      <h5 class="mt-4">Preparados</h5>
+      <div class="lista-pedidos">
+        {% for pedido in pedidos_mesas if pedido.estado == 'preparado' %}
+          <div class="pedido tarjeta preparado" data-fecha="{{ pedido.fecha.isoformat() }}">
+            <div class="pedido-header">
+              <strong>Mesa {{ pedido.mesa }}</strong>
+              <span class="estado">Preparado</span>
+            </div>
+            <small class="fecha">
+              Preparado hace: <span class="tiempo"></span><br>
+              <span class="text-muted">{{ pedido.fecha | hora_local }}</span>
+            </small>
+            <ul class="productos">
+				{% for item in pedido.productos %}
+					<li>
+					{{ item.producto }} x{{ item.cantidad }}
+					{% if item.descripcion %}
+						<br>
+							<div class="descripcion-cocina">📝 {{ item.descripcion }}</div>
+						{% endif %}
+					</li>
+				{% endfor %}
+			</ul>
+
+            <span class="badge bg-success preparado-badge">Preparado</span>
           </div>
-          {% if pedido.estado != 'preparado' %}
-            <form method="POST" action="{{ url_for('marcar_preparado', tipo='domicilio', id=pedido.id) }}">
-              <button type="submit" class="btn btn-success">Marcar como preparado</button>
-            </form>
-          {% else %}
-            <span class="badge bg-success">Preparado</span>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p>No hay pedidos a domicilio activos.</p>
-  {% endif %}
+        {% endfor %}
+      </div>
+    </section>
 
-  <div class="mt-4">
+    <!-- Pedidos a Domicilio -->
+    <section class="pedidos-domicilio">
+      <h3 class="text-warning text-center mb-3">Pedidos a Domicilio</h3>
+
+      <h5>Activos</h5>
+      <div class="lista-pedidos">
+        {% set activos_domicilio = false %}
+        {% for pedido in pedidos_domicilios if pedido.estado != 'preparado' %}
+          {% set activos_domicilio = true %}
+          <div class="pedido tarjeta activo" data-fecha="{{ pedido.fecha.isoformat() }}" data-id="{{ pedido.id }}">
+            <div class="pedido-header">
+              <strong>Cliente: {{ pedido.cliente }}</strong>
+              <span class="estado">{{ pedido.estado|capitalize }}</span>
+            </div>
+            <small class="fecha">
+              Creados hace: <span class="tiempo"></span><br>
+              <span class="text-muted">{{ pedido.fecha.strftime('%H:%M:%S') }}</span>
+            </small>
+           <ul class="productos">
+				{% for item in pedido.productos %}
+					<li>
+					{{ item.producto }} x{{ item.cantidad }}
+					{% if item.descripcion %}
+						<br>
+							<div class="descripcion-cocina">📝 {{ item.descripcion }}</div>
+					{% endif %}
+					</li>
+				{% endfor %}
+			</ul>
+
+            <button 
+              class="btn btn-success btn-sm marcar-preparado" 
+              data-id="{{ pedido.id }}">
+              Marcar como preparado
+            </button>
+          </div>
+        {% endfor %}
+        {% if not activos_domicilio %}
+          <p>No hay pedidos a domicilio activos.</p>
+        {% endif %}
+      </div>
+
+      <h5 class="mt-4">Preparados</h5>
+      <div class="lista-pedidos">
+        {% for pedido in pedidos_domicilios if pedido.estado == 'preparado' %}
+          <div class="pedido tarjeta preparado" data-fecha="{{ pedido.fecha.isoformat() }}">
+            <div class="pedido-header">
+              <strong>Cliente: {{ pedido.cliente }}</strong>
+              <span class="estado">Preparado</span>
+            </div>
+            <small class="fecha">
+              Preparado hace: <span class="tiempo"></span><br>
+              <span class="text-muted">{{ pedido.fecha.strftime('%H:%M:%S') }}</span>
+            </small>
+           <ul class="productos">
+				{% for item in pedido.productos %}
+					<li>
+					{{ item.producto }} x{{ item.cantidad }}
+					{% if item.descripcion %}
+							<div class="descripcion-cocina">📝 {{ item.descripcion }}</div>
+					{% endif %}
+					</li>
+				{% endfor %}
+			</ul>
+
+            <span class="badge bg-success preparado-badge">Preparado</span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="mt-4 text-center">
     <a href="{{ url_for('salon') }}" class="btn btn-secondary">Volver al Salón</a>
   </div>
 </div>
 
-<script>
-// Mostrar tiempo transcurrido desde la creación del pedido
-function tiempoDesde(fechaISO) {
-  const fechaCreacion = new Date(fechaISO);
-  const ahora = new Date();
-  const diffMs = ahora - fechaCreacion;
-  const diffMin = Math.floor(diffMs / 60000);
-  if(diffMin < 1) return 'menos de un minuto';
-  if(diffMin < 60) return diffMin + ' minutos';
-  const diffH = Math.floor(diffMin / 60);
-  if(diffH < 24) return diffH + ' horas';
-  const diffD = Math.floor(diffH / 24);
-  return diffD + ' días';
+<style>
+  .cocina-secciones {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .pedidos-mesa, .pedidos-domicilio {
+    flex: 1 1 45%;
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 0.1);
+    max-height: 75vh;
+    overflow-y: auto;
+  }
+  .lista-pedidos {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .pedido.tarjeta {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+    border-left: 5px solid #007bff;
+    position: relative;
+    transition: opacity 0.3s ease;
+  }
+  .pedido.tarjeta.activo {
+    border-left-color: #007bff;
+  }
+  .pedido.tarjeta.preparado {
+    border-left-color: #28a745;
+    opacity: 0.85;
+  }
+  .pedido.tarjeta.urgente {
+    border-left-color: red;
+    animation: parpadeo 1s infinite;
+  }
+  @keyframes parpadeo {
+    0%, 100% { background-color: #fff; }
+    50% { background-color: #ffe6e6; }
+  }
+  .pedido-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    font-size: 1.1rem;
+  }
+  .estado {
+    font-weight: 600;
+    color: #555;
+    font-size: 0.9rem;
+  }
+  .fecha {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 0.6rem;
+  }
+  .productos {
+    list-style: disc inside;
+    margin-bottom: 0.8rem;
+  }
+  .btn-sm {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+  }
+  .preparado-badge {
+    font-size: 0.85rem;
+  }
+  .descripcion-cocina {
+  background-color: #fff3cd;
+  color: #856404;
+  font-weight: bold;
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  border-left: 4px solid #ffc107;
+  border-radius: 4px;
+  margin-top: 4px;
 }
 
-document.querySelectorAll('small[data-fecha]').forEach(el => {
-  const fechaISO = el.getAttribute('data-fecha');
-  el.querySelector('.tiempo').textContent = tiempoDesde(fechaISO);
-});
+</style>
 
-// Opcional: auto ocultar pedidos preparados o resaltarlos
+<script>
+  // Función para calcular tiempo transcurrido y texto
+  function tiempoDesde(fechaISO) {
+    const fechaCreacion = new Date(fechaISO);
+    const ahora = new Date();
+    const diffMs = ahora - fechaCreacion;
+    const diffMin = Math.floor(diffMs / 60000);
+    if(diffMin < 1) return 'menos de un minuto';
+    if(diffMin < 60) return diffMin + ' minutos';
+    const diffH = Math.floor(diffMin / 60);
+    if(diffH < 24) return diffH + ' horas';
+    const diffD = Math.floor(diffH / 24);
+    return diffD + ' días';
+  }
+
+  // Actualiza el tiempo en cada pedido y marca urgentes
+  function actualizarTiempos() {
+    document.querySelectorAll('.pedido.tarjeta').forEach(el => {
+      const fechaISO = el.getAttribute('data-fecha');
+      if (fechaISO) {
+        const tiempoEl = el.querySelector('.tiempo');
+        tiempoEl.textContent = tiempoDesde(fechaISO);
+
+        const fechaCreacion = new Date(fechaISO);
+        const ahora = new Date();
+        const diffMin = Math.floor((ahora - fechaCreacion) / 60000);
+
+        if (diffMin > 15 && el.classList.contains('activo')) {
+          el.classList.add('urgente');
+        } else {
+          el.classList.remove('urgente');
+        }
+      }
+    });
+  }
+
+  // Llamada inicial y cada minuto para refrescar tiempos y estados urgentes
+  actualizarTiempos();
+  setInterval(actualizarTiempos, 60000);
+
+  // Manejo del botón marcar preparado con fetch
+  document.querySelectorAll('.marcar-preparado').forEach(btn => {
+    btn.addEventListener('click', async function () {
+      const pedidoId = this.dataset.id;
+      try {
+        const res = await fetch(`/marcar_preparado/${pedidoId}`, { method: 'POST' });
+        if (res.status === 204) {
+          const tarjeta = this.closest('.tarjeta');
+          tarjeta.classList.remove('activo');
+          tarjeta.classList.add('preparado');
+
+          // Oculta la tarjeta (puedes cambiar por un fade out si quieres)
+          tarjeta.style.opacity = '0.5';
+
+          // Elimina el botón y agrega etiqueta "Preparado"
+          this.remove();
+          const badge = document.createElement('span');
+          badge.className = 'badge bg-success preparado-badge';
+          badge.textContent = 'Preparado';
+          tarjeta.appendChild(badge);
+
+          // Opcional: mover tarjeta al contenedor de preparados o recargar página para actualizar vista
+          // Para mover dinámicamente sería más complejo y depende de estructura del DOM
+        } else {
+          alert('Error al marcar el pedido como preparado.');
+        }
+      } catch (error) {
+        alert('Error en la conexión o servidor.');
+      }
+    });
+  });
 </script>
 {% endblock %}

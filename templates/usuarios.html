@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Gestión de Usuarios</h2>
+
+    <!-- Mensajes flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Formulario para crear usuario -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">Crear Nuevo Usuario</div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('crear_usuario') }}">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <input type="email" name="correo" class="form-control" placeholder="Correo electrónico" required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="password" name="password" class="form-control" placeholder="Contraseña" required>
+                    </div>
+                    <div class="col-md-4">
+                        <select name="rol_id" class="form-select" required>
+                            <option value="">-- Selecciona un rol --</option>
+                            {% for rol in roles %}
+                                <option value="{{ rol.id }}">{{ rol.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Crear Usuario</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de usuarios existentes -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.id }}</td>
+                    <td>{{ usuario.correo }}</td>
+                    <td>{{ usuario.rol.nombre }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

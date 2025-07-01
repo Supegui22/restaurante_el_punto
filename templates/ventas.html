@@ -19,7 +19,7 @@ Ventas - Mesa {{ mesa }}
                     color: white; display: flex; align-items: center; justify-content: center; border-radius: 10px;
                     font-weight: bold; font-size: 20px; box-shadow: 0 0 8px rgba(0,0,0,0.2);
                     transition: transform 0.2s;
-                    {% if m == mesa %} outline: 3px solid #ffc107; box-shadow: 0 0 15px #ffc107; {% endif %}"
+                    {% if m == mesa %} outline: 3px solid #ffc107; box-shadow: 0 0 15px #ffc107; {% endif %} "
              onmouseover="this.style.transform='scale(1.05)'"
              onmouseout="this.style.transform='scale(1)'">
           {{ m }}
@@ -28,298 +28,525 @@ Ventas - Mesa {{ mesa }}
     {% endfor %}
   </div>
 
-  <div class="row">
+<div class="row">
 
-    <!-- Productos -->
-    <div class="col-md-8">
-      {% for categoria, productos in categorias.items() %}
-        <h3 class="categoria-titulo">{{ categoria }}</h3>
+  <!-- CATEGORÍAS -->
+  <div class="col-12 mb-3">
+    <div id="botones-categorias" class="d-flex gap-2 flex-wrap">
+		<button class="btn btn-outline-primary categoria-btn" data-categoria="Todas">Todas</button>
+		{% for categoria in categorias.keys() %}
+			<button class="btn btn-outline-primary categoria-btn" data-categoria="{{ categoria }}">
+			{{ categoria }}
+			</button>
+		{% endfor %}
+	</div>
+  </div>
+
+<!-- Sección de Productos (8 columnas) -->
+<div class="col-md-8">
+  {% if categorias %}
+    {% for categoria, productos in categorias.items() %}
+      <div class="productos-categoria" data-categoria="{{ categoria }}" style="display: none;">
+        <h4 class="mb-3">{{ categoria }}</h4>
         <div class="row">
           {% for producto in productos %}
-            <div class="col-6 col-md-4">
-              <div class="producto" data-nombre="{{ producto.nombre }}" data-precio="{{ producto.precio }}">
-                <img src="{{ url_for('static', filename='images/' + producto.imagen) }}" alt="{{ producto.nombre }}" />
-                <h5>{{ producto.nombre }}</h5>
-                <p><strong>$ {{ '{:,.0f}'.format(producto.precio) }}</strong></p>
-                <div>
-                  <button type="button" class="btn btn-sm btn-outline-secondary btn-restar">-</button>
-                  <input type="text" class="cantidad-input" value="0" readonly />
-                  <button type="button" class="btn btn-sm btn-outline-secondary btn-sumar">+</button>
+            <div class="col-6 col-md-4 mb-4">
+              <div class="producto card shadow-sm text-center p-3" data-nombre="{{ producto.nombre }}" data-precio="{{ producto.precio }}">
+                {% if producto.imagen %}
+                  <img src="{{ url_for('static', filename='images/' + producto.imagen) }}" class="card-img-top mx-auto d-block" alt="{{ producto.nombre }}" style="height: 120px; object-fit: contain;">
+                {% else %}
+                  <img src="{{ url_for('static', filename='images/default.png') }}" class="card-img-top mx-auto d-block" alt="Sin imagen" style="height: 120px; object-fit: contain;">
+                {% endif %}
+                <div class="card-body p-2 d-flex flex-column align-items-center">
+                  <h5 class="card-title mb-2">{{ producto.nombre }}</h5>
+                  <p class="card-text text-success fw-bold mb-1">$ {{ '{:,.0f}'.format(producto.precio) }}</p>
+                  <p class="card-text text-secondary mb-2">Stock: {{ producto.stock }}</p>
+                  <div class="d-flex justify-content-center align-items-center gap-1">
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-restar rounded-circle">-</button>
+                    <input type="text" class="cantidad-input form-control text-center" value="0" readonly style="width: 45px;" />
+                    <button type="button" class="btn btn-outline-success btn-sm btn-sumar rounded-circle">+</button>
+                  </div>
                 </div>
               </div>
             </div>
           {% endfor %}
         </div>
-      {% endfor %}
-    </div>
-
-    <!-- Resumen -->
-    <div class="col-md-4">
-      <h3>Resumen del pedido</h3>
-      <div class="resumen-pedido border rounded bg-white p-3 mb-3" style="max-height: 350px; overflow-y: auto;">
-        <ul id="lista-pedido" class="list-group"></ul>
       </div>
-      <h4>
-        Total: $ <span id="total-pedido">0</span>
-        <button type="button" id="btn-total" class="btn btn-success btn-sm ms-2" disabled data-bs-toggle="modal" data-bs-target="#modalAcciones">Total</button>
-      </h4>
-	  <div id="total-ventas-container" class="alert alert-info text-center mt-2">
-		Total Vendido Hoy: $<span id="total-ventas-hoy">0</span>
-	  </div>
+    {% endfor %}
 
-	  <form method="POST" action="{{ url_for('cerrar_caja') }}">
-	  <button type="submit" class="btn btn-warning">🧾 Cerrar Caja</button>
-      </form>
+    <!-- PAGINACIÓN -->
+    {% if total_paginas > 1 %}
+      <nav aria-label="Paginación de productos" class="mt-3">
+        <ul class="pagination justify-content-center">
+          {% for page in range(1, total_paginas + 1) %}
+            <li class="page-item {% if page == pagina_actual %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('ventas_en_punto', mesa=mesa, categoria=categoria_activa, pagina=page) }}">{{ page }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="text-muted">No hay productos disponibles para esta categoría.</p>
+  {% endif %}
+</div>
 
 
-      <!-- FORMULARIO para enviar pedido -->
-      <form method="POST" action="{{ url_for('ventas_en_punto', mesa=mesa) }}" id="form-pedido">
-        <input type="hidden" name="mesa" value="{{ mesa }}" />
-        <input type="hidden" name="productos" id="productos-seleccionados" />
-        <button type="submit" class="btn btn-primary mt-2" id="enviar-pedido">Enviar Pedido</button>
-      </form>
+<!-- RESUMEN -->
+<div class="col-md-4">
 
-      <a href="{{ url_for('comanda_pdf', mesa=mesa) }}" target="_blank" class="btn btn-danger mt-2">🧾 Imprimir Comanda</a>
+  <!-- Ventas del día con Total Vendido Hoy arriba -->
+  <div class="card mb-4">
+    <div class="card-header bg-info text-white text-center">
+      Total Vendido Hoy: $<span id="total-ventas-hoy">{{ '{:,.0f}'.format(total_vendido_hoy or 0) }}</span>
     </div>
+    <div class="card-body p-2">
+      <div class="text-muted text-center mb-2" style="font-size: 0.85rem;">
+        * Este total se actualiza al facturar pedidos.
+      </div>
+      <h5 class="card-title">🧾 Ventas del Día</h5>
+    </div>
+    <ul class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+      {% if ventas_dia %}
+        {% for venta in ventas_dia %}
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div class="me-auto">
+              <div><strong>{{ 'Mesa ' ~ venta.mesa if venta.tipo == 'salon' else 'Domicilio' }}</strong></div>
+              <small class="text-muted">{{ venta.fecha | hora_local }}</small>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-success">
+                ${{ venta.total | default(0) | int | string | replace(',', '.') }}
+              </div>
+              <a href="{{ url_for('factura_pdf_por_id', pedido_id=venta.id) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+                Ver PDF
+              </a>
+            </div>
+          </li>
+        {% endfor %}
+      {% else %}
+        <li class="list-group-item text-center text-muted">No hay ventas hoy</li>
+      {% endif %}
+    </ul>
+  </div>
+
+
+
+  <h3>Resumen del pedido</h3>
+  <div class="resumen-pedido border rounded bg-white p-3 mb-3" style="max-height: 350px; overflow-y: auto;">
+    <ul id="lista-pedido" class="list-group"></ul>
+  </div>
+
+  <!-- Total + botón Total (siempre visible pero oculto por JS si no hay productos) -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">Total: $<span id="total-pedido">0</span></h4>
+	<button
+		id="btn-total"
+		class="btn btn-danger btn-sm {% if not hay_productos_enviados %}d-none{% endif %}"
+		data-bs-toggle="modal"
+		data-bs-target="#modalAcciones">
+		Facturar
+    </button>
 
   </div>
 
-  <div class="mt-4">
-    <a href="{{ url_for('salon') }}" class="btn btn-secondary">Volver al Salón</a>
+
+  <!-- Formulario Enviar Pedido -->
+  <form method="POST" action="{{ url_for('ventas_en_punto', mesa=mesa) }}" id="form-pedido">
+    <input type="hidden" name="mesa" value="{{ mesa }}" />
+    <input type="hidden" name="productos" id="productos-seleccionados" />
+    <button type="submit" class="btn btn-primary mt-3 w-100" id="enviar-pedido" disabled style="display:block;">✅ Enviar Pedido</button>
+  </form>
+
+  <!-- Botón Imprimir Comanda -->
+  <a href="{{ url_for('comanda_pdf', mesa=mesa) }}" target="_blank" class="btn btn-danger mt-2 w-100" style="display:block;">🧾 Imprimir Comanda</a>
+
+  <!-- Botón Cerrar Caja -->
+  <form action="{{ url_for('cerrar_caja') }}" method="POST" class="mt-2 w-100">
+    <button type="submit" class="btn btn-warning w-100">📒 Cerrar Caja</button>
+  </form>
+
+  <!-- Botón volver -->
+  <a href="{{ url_for('salon') }}" class="btn btn-secondary mt-3 w-100">⬅️ Volver al Salón</a>
+</div>
+
+
+<!-- Modal para descripción -->
+<div class="modal fade" id="modalDescripcion" tabindex="-1" aria-labelledby="modalDescripcionLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalDescripcionLabel">Agregar Descripción</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="descripcion-producto-id">
+        <div class="mb-3">
+          <label for="input-descripcion" class="form-label">Comentario para cocina</label>
+          <textarea class="form-control" id="input-descripcion" rows="3" placeholder="Ej. Sin arroz, con sopa"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="guardar-descripcion">Guardar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- Modal Acciones -->
 <div class="modal fade" id="modalAcciones" tabindex="-1" aria-labelledby="modalAccionesLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalAccionesLabel">Acciones Pedido</h5>
+        <h5 class="modal-title" id="modalAccionesLabel">¿Qué deseas hacer?</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body">
-        <p>¿Qué deseas hacer con el pedido?</p>
-        <div class="d-grid gap-2">
-          <button type="button" id="btn-imprimir-comanda" class="btn btn-danger">Imprimir Comanda</button>
-
-          <!-- Formulario para facturar -->
-          <form method="POST" action="{{ url_for('facturar_pedido') }}" id="form-facturar">
-            <input type="hidden" name="mesa" value="{{ mesa }}">
-            <button type="submit" class="btn btn-primary">Facturar Pedido</button>
-          </form>
-        </div>
+      <div class="modal-body text-center">
+        <!-- Formulario para facturar -->
+        <form method="POST" action="{{ url_for('facturar_pedido') }}" id="form-facturar">
+          <input type="hidden" name="mesa" value="{{ mesa }}">
+          <input type="hidden" name="productos" id="productos-facturar">
+          <button type="submit" class="btn btn-success mb-3 w-100">✅ Facturar Pedido</button>
+        </form>
+        <!-- Botón para imprimir -->
+        <button type="button" class="btn btn-secondary w-100" onclick="window.open('{{ url_for('factura_pdf', mesa=mesa) }}', '_blank')">
+          🧾 Imprimir Factura
+        </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Toast Bootstrap -->
+
+
+<!-- Toasts -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
-  <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="toast-header">
-      <strong class="me-auto" id="toast-title">Mensaje</strong>
-      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+  <div id="toast-success" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">Acción completada con éxito.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
     </div>
-    <div class="toast-body" id="toast-body"></div>
+  </div>
+  <div id="toast-error" class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">Ha ocurrido un error. Intenta de nuevo.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+    </div>
   </div>
 </div>
 
-<!-- Estilos -->
 <style>
-  .producto {
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 10px;
-    margin-bottom: 15px;
+  .producto:hover {
+    box-shadow: 0 0 12px rgba(0, 123, 255, 0.7);
     cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  .producto.seleccionado {
-    background-color: #d1e7dd;
-  }
-  .producto img {
-    max-width: 100%;
-    height: 120px;
-    object-fit: contain;
-    margin-bottom: 8px;
-  }
-  .cantidad-input {
-    width: 60px;
-    text-align: center;
-    display: inline-block;
   }
   .categoria-titulo {
-    margin-top: 30px;
-    margin-bottom: 15px;
-    font-weight: 600;
-    font-size: 1.4rem;
-    border-bottom: 2px solid #0d6efd;
-    padding-bottom: 4px;
+    font-weight: 700;
+    margin-top: 10px;
+    margin-bottom: 10px;
   }
-  .mesa-cuadro {
-    user-select: none;
+
+  /* Animación para botón que parpadea */
+  @keyframes parpadeo {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
+  .boton-parpadea {
+    animation: parpadeo 1s infinite;
   }
 </style>
 
-<!-- Scripts -->
-<script>
-  const pedidosPorMesa = {
-    {% for m in mesas %}
-      "{{ m }}": {
-        estado: "{{ estado_mesas[m] }}",
-        productos: [
-          {% for detalle in pedidos_guardados.get(m, []) %}
-            { nombre: "{{ detalle.producto }}", cantidad: {{ detalle.cantidad }}, precio: {{ detalle.precio }} },
-          {% endfor %}
-        ]
-      },
-    {% endfor %}
-  };
 
-  let mesaActual = "{{ mesa }}";
-  let productosSeleccionados = {};
+<script>
+function actualizarTotalVentasHoy() {
+  fetch("{{ url_for('total_ventas_hoy') }}")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById('total-ventas-hoy').textContent = data.total.toLocaleString();
+    })
+    .catch(() => {
+      document.getElementById('total-ventas-hoy').textContent = '0';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  let productoSeleccionadoId = null;
+  let pedidoEnviado = false;
+
+  const pedidoGuardadoServidor = {{ pedido_guardado|tojson|default('{}') }};
+  const pedidoGuardadoLocal = JSON.parse(localStorage.getItem('pedido_temporal') || '{}');
+  const productosData = {};
+
+  // Inicializar productos visibles desde el DOM
+  document.querySelectorAll('.producto').forEach(prod => {
+    const nombre = prod.dataset.nombre;
+    const precio = parseFloat(prod.dataset.precio);
+
+    const cantidad = pedidoGuardadoLocal[nombre]?.cantidad ||
+                     pedidoGuardadoServidor[nombre]?.cantidad || 0;
+    const descripcion = pedidoGuardadoLocal[nombre]?.descripcion ||
+                        pedidoGuardadoServidor[nombre]?.descripcion || '';
+
+    productosData[nombre] = { precio, cantidad, descripcion };
+
+    const inputCantidad = prod.querySelector('.cantidad-input');
+    inputCantidad.value = cantidad;
+  });
 
   function actualizarResumen() {
-    const lista = document.getElementById('lista-pedido');
-    lista.innerHTML = '';
+    const listaPedido = document.getElementById('lista-pedido');
+    const totalPedidoSpan = document.getElementById('total-pedido');
+    const btnEnviar = document.getElementById('enviar-pedido');
+    const btnTotalModal = document.getElementById('btn-total');
+
+    listaPedido.innerHTML = '';
     let total = 0;
+    let hayProductos = false;
 
-    for (const [nombre, data] of Object.entries(productosSeleccionados)) {
-      if (data.cantidad > 0) {
+    for (const [nombre, info] of Object.entries(productosData)) {
+      if (info.cantidad > 0) {
+        hayProductos = true;
+        const subtotal = info.precio * info.cantidad;
+        total += subtotal;
+
         const li = document.createElement('li');
-        li.className = 'list-group-item d-flex justify-content-between align-items-center';
-        li.textContent = `${nombre} x${data.cantidad}`;
-        const spanPrecio = document.createElement('span');
-        spanPrecio.textContent = `$ ${data.precio * data.cantidad}`;
-        li.appendChild(spanPrecio);
-        lista.appendChild(li);
-        total += data.precio * data.cantidad;
+        li.className = 'list-group-item d-flex justify-content-between align-items-start';
+        li.setAttribute('data-id', nombre);
+
+        const divIzquierda = document.createElement('div');
+        divIzquierda.className = 'flex-grow-1';
+
+        const nombreElem = document.createElement('div');
+        nombreElem.className = 'fw-bold';
+        nombreElem.textContent = `${nombre} x${info.cantidad}`;
+
+        const descripcion = document.createElement('small');
+        descripcion.className = 'descripcion-texto text-muted d-block mt-1';
+        descripcion.textContent = info.descripcion || '';
+
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn btn-sm btn-outline-secondary btn-descripcion mt-1';
+        btnEditar.innerHTML = '<i class="bi bi-pencil"></i>';
+
+        divIzquierda.appendChild(nombreElem);
+        divIzquierda.appendChild(descripcion);
+        divIzquierda.appendChild(btnEditar);
+
+        const spanSub = document.createElement('span');
+        spanSub.className = 'badge bg-primary rounded-pill align-self-center';
+        spanSub.textContent = `$${subtotal.toFixed(0)}`;
+
+        li.appendChild(divIzquierda);
+        li.appendChild(spanSub);
+        listaPedido.appendChild(li);
       }
     }
 
-    document.getElementById('total-pedido').textContent = total.toLocaleString();
-    const hayProductos = total > 0;
-    document.getElementById('btn-total').disabled = !hayProductos;
-    document.getElementById('enviar-pedido').disabled = !hayProductos;
+    totalPedidoSpan.textContent = total.toFixed(0);
+    btnEnviar.disabled = !hayProductos;
+    btnTotalModal.disabled = !hayProductos;
+    btnTotalModal.classList.toggle('d-none', !hayProductos);
+    btnTotalModal.classList.toggle('boton-parpadea', hayProductos);
+  }
 
-    const productosParaEnviar = [];
-    for (const [nombre, data] of Object.entries(productosSeleccionados)) {
-      for (let i = 0; i < data.cantidad; i++) {
-        productosParaEnviar.push(nombre);
-      }
+  actualizarResumen();
+
+  document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('btn-descripcion')) {
+      const li = e.target.closest('li');
+      productoSeleccionadoId = li.getAttribute('data-id');
+      const textoActual = li.querySelector('.descripcion-texto')?.textContent || '';
+      document.getElementById('input-descripcion').value = textoActual;
+      new bootstrap.Modal(document.getElementById('modalDescripcion')).show();
     }
-    document.getElementById('productos-seleccionados').value = productosParaEnviar.join(',');
-  }
+  });
 
-  function cargarPedido(productos) {
-    productosSeleccionados = {};
-    document.querySelectorAll('.producto').forEach(div => {
-      div.querySelector('.cantidad-input').value = 0;
-      div.classList.remove('seleccionado');
-    });
+  document.getElementById('guardar-descripcion').addEventListener('click', () => {
+    const nuevaDescripcion = document.getElementById('input-descripcion').value.trim();
+    productosData[productoSeleccionadoId].descripcion = nuevaDescripcion;
+    const li = document.querySelector(`li[data-id="${productoSeleccionadoId}"]`);
+    li.querySelector('.descripcion-texto').textContent = nuevaDescripcion;
+    bootstrap.Modal.getInstance(document.getElementById('modalDescripcion')).hide();
+  });
 
-    productos.forEach(item => {
-      const divProducto = [...document.querySelectorAll('.producto')].find(div => div.dataset.nombre === item.nombre);
-      if (divProducto) {
-        const inputCantidad = divProducto.querySelector('.cantidad-input');
-        inputCantidad.value = item.cantidad;
-        divProducto.classList.add('seleccionado');
-        productosSeleccionados[item.nombre] = { cantidad: item.cantidad, precio: item.precio };
-      }
-    });
-    actualizarResumen();
-  }
-
-  function actualizarEstadoMesa(mesa, nuevoEstado) {
-    pedidosPorMesa[mesa].estado = nuevoEstado;
-    const cuadroMesa = document.querySelector(`a[href$="mesa=${mesa}"] .mesa-cuadro`);
-    if (cuadroMesa) {
-      cuadroMesa.style.backgroundColor = nuevoEstado === 'ocupada' ? '#dc3545' : '#28a745';
-    }
-  }
-
-  function marcarMesaOcupada() {
-    if (pedidosPorMesa[mesaActual].estado === 'libre') {
-      actualizarEstadoMesa(mesaActual, 'ocupada');
-    }
-  }
-
-  function mostrarToast(mensaje, tipo = 'info') {
-    const toastEl = document.getElementById('liveToast');
-    const toastTitle = document.getElementById('toast-title');
-    const toastBody = document.getElementById('toast-body');
-
-    toastTitle.textContent = tipo === 'success' ? 'Éxito' : (tipo === 'warning' ? 'Advertencia' : 'Mensaje');
-    toastBody.textContent = mensaje;
-
-    toastEl.className = `toast bg-${tipo === 'warning' ? 'warning' : tipo} text-white show`;
-    new bootstrap.Toast(toastEl).show();
-  }
-  
-  function actualizarTotalVentas() {
-     fetch('/total_ventas_hoy')
-     .then(response => response.json())
-     .then(data => {
-      document.getElementById('total-ventas-hoy').textContent = data.total;
-    });
-  }
-
-// Actualiza al cargar
-actualizarTotalVentas();
-
-// Y cada 30 segundos automáticamente
-setInterval(actualizarTotalVentas, 30000);
-
-  window.onload = () => {
-    if (pedidosPorMesa[mesaActual]?.estado === 'ocupada') {
-      cargarPedido(pedidosPorMesa[mesaActual].productos);
-    } else {
-      productosSeleccionados = {};
+  document.querySelectorAll('.btn-sumar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prod = btn.closest('.producto');
+      const nombre = prod.dataset.nombre;
+      const input = prod.querySelector('.cantidad-input');
+      productosData[nombre].cantidad = ++input.value;
       actualizarResumen();
-    }
-	    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          mostrarToast("{{ message|escapejs }}", "{{ category }}");
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-  };
-document.querySelectorAll('.btn-sumar').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const divProducto = e.target.closest('.producto');
-      const nombre = divProducto.dataset.nombre;
-      const precio = parseInt(divProducto.dataset.precio);
-      const input = divProducto.querySelector('.cantidad-input');
-      const cantidad = ++input.value;
-      productosSeleccionados[nombre] = { cantidad, precio };
-      divProducto.classList.add('seleccionado');
-      actualizarResumen();
-      marcarMesaOcupada();
     });
   });
 
   document.querySelectorAll('.btn-restar').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const divProducto = e.target.closest('.producto');
-      const nombre = divProducto.dataset.nombre;
-      const precio = parseInt(divProducto.dataset.precio);
-      const input = divProducto.querySelector('.cantidad-input');
-      let cantidad = Math.max(0, --input.value);
-      if (cantidad === 0) {
-        delete productosSeleccionados[nombre];
-        divProducto.classList.remove('seleccionado');
-      } else {
-        productosSeleccionados[nombre] = { cantidad, precio };
+    btn.addEventListener('click', () => {
+      const prod = btn.closest('.producto');
+      const nombre = prod.dataset.nombre;
+      const input = prod.querySelector('.cantidad-input');
+      if (input.value > 0) {
+        productosData[nombre].cantidad = --input.value;
+        actualizarResumen();
       }
+    });
+  });
+
+  // Manejo de cambio de categoría sin recargar
+  document.querySelectorAll('.categoria-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const categoria = btn.dataset.categoria;
+      guardarPedidoEnLocalStorage();
+
+      // Activar botón seleccionado
+      document.querySelectorAll('.categoria-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Mostrar productos solo de esa categoría
+      document.querySelectorAll('.productos-categoria').forEach(div => {
+        div.style.display = (categoria === 'Todas' || div.dataset.categoria === categoria) ? 'block' : 'none';
+      });
+
       actualizarResumen();
     });
   });
 
-  document.getElementById('btn-imprimir-comanda').onclick = () => {
-    window.open("{{ url_for('comanda_pdf', mesa=mesa) }}", "_blank");
-  };
+  document.querySelectorAll('.page-link').forEach(btn => {
+    btn.addEventListener('click', guardarPedidoEnLocalStorage);
+  });
+
+  function guardarPedidoEnLocalStorage() {
+    const productosAGuardar = {};
+    for (const [nombre, info] of Object.entries(productosData)) {
+      if (info.cantidad > 0) {
+        productosAGuardar[nombre] = {
+          cantidad: info.cantidad,
+          descripcion: info.descripcion,
+          precio: info.precio
+        };
+      }
+    }
+    localStorage.setItem('pedido_temporal', JSON.stringify(productosAGuardar));
+  }
+
+  const formPedido = document.getElementById('form-pedido');
+  formPedido.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    await enviarPedido();
+    localStorage.removeItem('pedido_temporal');
+    location.reload();
+  });
+
+  async function enviarPedido() {
+    const productosSeleccionados = {};
+    for (const [nombre, info] of Object.entries(productosData)) {
+      if (info.cantidad > 0) {
+        productosSeleccionados[nombre] = {
+          cantidad: info.cantidad,
+          descripcion: info.descripcion || '',
+          precio: info.precio || 0
+        };
+      }
+    }
+
+    if (Object.keys(productosSeleccionados).length === 0) {
+      alert('Debes seleccionar al menos un producto.');
+      return;
+    }
+
+    document.getElementById('productos-seleccionados').value = JSON.stringify(productosSeleccionados);
+
+    const formData = new FormData(formPedido);
+    const res = await fetch(formPedido.action, {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+
+    if (!res.ok) throw new Error();
+  }
+
+  document.getElementById('form-facturar').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const form = e.target;
+
+    try {
+      await enviarPedido();
+
+      const resFacturar = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+
+      if (!resFacturar.ok) throw new Error();
+
+      actualizarTotalVentasHoy();
+      bootstrap.Modal.getInstance(document.getElementById('modalAcciones')).hide();
+      new bootstrap.Toast(document.getElementById('toast-success')).show();
+
+      const urlFactura = "{{ url_for('factura_pdf', mesa=mesa) }}";
+      window.open(urlFactura, '_blank');
+
+      localStorage.removeItem('pedido_temporal');
+      setTimeout(() => location.reload(), 1000);
+    } catch {
+      new bootstrap.Toast(document.getElementById('toast-error')).show();
+    }
+  });
+
+  const modalAcciones = document.getElementById('modalAcciones');
+  modalAcciones.addEventListener('show.bs.modal', () => {
+    const productosSeleccionados = {};
+    for (const [nombre, info] of Object.entries(productosData)) {
+      if (info.cantidad > 0) {
+        productosSeleccionados[nombre] = {
+          cantidad: info.cantidad,
+          descripcion: info.descripcion || ''
+        };
+      }
+    }
+    document.getElementById('productos-facturar').value = JSON.stringify(productosSeleccionados);
+  });
+
+  document.getElementById('btn-imprimir-comanda').addEventListener('click', () => {
+    const urlComanda = "{{ url_for('comanda_pdf', mesa=mesa) }}";
+    window.open(urlComanda, '_blank');
+  });
+
+  actualizarTotalVentasHoy();
+  
+  // Mostrar categoría activa en primera carga
+  const categoriaActiva = "{{ categoria_activa }}";
+  
+  // Mostrar productos y marcar botón activo según la categoría
+  document.querySelectorAll('.productos-categoria').forEach(div => {
+  div.style.display = (div.dataset.categoria === categoriaActiva) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.categoria-btn').forEach(btn => {
+  if (btn.dataset.categoria === categoriaActiva) {
+	  btn.classList.add('active');
+  } else {
+	  btn.classList.remove('active');
+  }
+  });
+  
+  // Si no hay categoría activa desde backend, seleccionar la primera
+  if (!categoriaActiva) {
+  const primerBoton = document.querySelector('.categoria-btn');
+  if (primerBoton) primerBoton.click();
+  }
+
+
+  const btnTotalModal = document.getElementById('btn-total');
+  const productosYaCargados = Object.values(productosData).some(p => p.cantidad > 0);
+  if (productosYaCargados) {
+    pedidoEnviado = true;
+    actualizarResumen();
+  }
+});
 </script>
- 
-</script>
+
+
 {% endblock %}

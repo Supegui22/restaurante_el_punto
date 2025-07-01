@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Historial de Facturas{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-4">Historial de Facturas</h2>
+
+  <!-- Filtros -->
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label for="fecha" class="form-label">Fecha</label>
+      <input type="date" id="fecha" name="fecha" class="form-control" value="{{ fecha or '' }}">
+    </div>
+    <div class="col-md-4">
+      <label for="tipo" class="form-label">Tipo de Pedido</label>
+      <select name="tipo" id="tipo" class="form-select">
+        <option value="">Todos</option>
+        <option value="salon" {% if tipo == 'salon' %}selected{% endif %}>Salón</option>
+        <option value="domicilio" {% if tipo == 'domicilio' %}selected{% endif %}>Domicilio</option>
+        <option value="fiado" {% if tipo == 'fiado' %}selected{% endif %}>Fiado</option>
+      </select>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+    </div>
+  </form>
+
+  <!-- Tabla de pedidos -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Fecha</th>
+          <th>Mesa / Cliente</th>
+          <th>Tipo</th>
+          <th>Total</th>
+          <th>Pagado el</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pedido in pedidos %}
+        <tr>
+          <td>{{ pedido.fecha | hora_local }}</td>
+          <td>
+            {% if pedido.tipo == 'salon' %}
+              Mesa {{ pedido.mesa }}
+            {% else %}
+              {{ pedido.cliente_nombre or 'Sin nombre' }}<br>
+              <small class="text-muted">{{ pedido.cliente_telefono or '' }}</small>
+            {% endif %}
+          </td>
+          <td>
+            {% if pedido.tipo == 'domicilio' and pedido.estado_pago == 'fiado' %}
+              Fiado
+            {% else %}
+              {{ pedido.tipo.capitalize() }}
+            {% endif %}
+          </td>
+          <td>
+            ${{ pedido.detalles | map(attribute='precio_total') | sum | round(0) }}
+          </td>
+          <td>
+            {% if pedido.estado_pago == 'pagado' %}
+              {{ pedido.fecha_pago | hora_local if pedido.fecha_pago else '—' }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td class="d-flex flex-wrap gap-1">
+            <a href="{{ url_for('factura_pdf_por_id', pedido_id=pedido.id) }}" class="btn btn-sm btn-outline-primary" target="_blank">Ver Factura</a>
+
+            {% if pedido.tipo == 'domicilio' and pedido.estado_pago == 'fiado' %}
+              <form method="POST" action="{{ url_for('cobrar_pedido_fiado', pedido_id=pedido.id) }}" onsubmit="return confirm('¿Marcar este pedido como pagado?')">
+                <button class="btn btn-sm btn-success">Cobrar Fiado</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">No hay facturas para mostrar.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

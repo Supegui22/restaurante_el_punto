@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Perfil{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">Mi Perfil</div>
+  <div class="card-body">
+    <p><strong>Correo:</strong> {{ usuario.correo }}</p>
+    <p><strong>Rol:</strong> {{ usuario.rol.nombre }}</p>
+    <a href="{{ url_for('cambiar_contrasena') }}" class="btn btn-primary">Cambiar contraseña</a>
+  </div>
+</div>
+{% endblock %}

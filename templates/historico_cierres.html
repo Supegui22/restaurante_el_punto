@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">📜 Histórico de Cierres de Caja</h2>
+
+  {% if cierres %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Fecha</th>
+          <th>Total Ventas</th>
+          <th>Facturados</th>
+          <th>Fiado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cierre in cierres %}
+        <tr>
+          <td>{{ cierre.fecha | hora_local }}</td>
+          <td>${{ '{:,.0f}'.format(cierre.total_ventas) }}</td>
+          <td>{{ cierre.pedidos_facturados }}</td>
+          <td>${{ '{:,.0f}'.format(cierre.total_fiado) }}</td>
+          <td>
+            <a href="{{ url_for('ver_cierre_caja', cierre_id=cierre.id) }}" class="btn btn-sm btn-primary">🔍 Ver Detalles</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-info">No hay cierres guardados todavía.</div>
+  {% endif %}
+
+  <a href="{{ url_for('inicio') }}" class="btn btn-secondary mt-3">↩️ Volver</a>
+</div>
+{% endblock %}

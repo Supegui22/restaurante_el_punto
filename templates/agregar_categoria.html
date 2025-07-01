@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Agregar Categoría</h2>
+
+  <form method="POST">
+    <div class="mb-3">
+      <label for="nombre" class="form-label">Nombre de la categoría</label>
+      <input type="text" class="form-control" name="nombre" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Guardar</button>
+  </form>
+
+  <hr>
+
+  <h4>Categorías existentes</h4>
+	<ul class="list-group">
+		{% for cat in categorias %}
+		<li class="list-group-item d-flex justify-content-between align-items-center">
+		{{ cat.nombre }}
+	
+		<span>
+			<a href="{{ url_for('editar_categoria', categoria_id=cat.id) }}" class="btn btn-sm btn-warning me-2">Editar</a>
+	
+			<form method="POST" action="{{ url_for('eliminar_categoria', categoria_id=cat.id) }}" class="d-inline" onsubmit="return confirm('¿Eliminar esta categoría?');">
+			<button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+			</form>
+		</span>
+		</li>
+		{% endfor %}
+	</ul>
+</div>
+{% endblock %}

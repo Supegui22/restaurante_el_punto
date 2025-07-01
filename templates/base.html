@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>{% block title %}Ventas en Punto{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   <style>
     .toast-container {
@@ -15,73 +16,151 @@
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="{{ url_for('salon') }}">Ventas_en_Punto</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          {% if session.get('usuario') %}
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'salon' %}active{% endif %}" href="{{ url_for('salon') }}">Salón</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint.startswith('ventas_en_punto') %}active{% endif %}" href="{{ url_for('ventas_en_punto',mesa=1) }}">Ventas</a>
-          </li>
-		  <li class="nav-item">
-            <a class="nav-link {% if request.endpoint.startswith('cocina') %}active{% endif %}" href="{{ url_for('cocina') }}">Cocina</a>
-          </li>
-		  <li class="nav-item">
-			<a class="nav-link {% if request.endpoint == 'pedidos_domicilios' %}active{% endif %}" href="{{ url_for('domicilios') }}">Domicilios</a>
-		  </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'ver_reportes' %}active{% endif %}" href="{{ url_for('reportes') }}">Reportes</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('logout') }}">Cerrar sesión</a>
-          </li>
-          {% else %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{{ url_for('salon') }}">Ventas_en_Punto</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        {% if session.get('usuario') %}
+          {% if 'ver_salon' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'salon' %}active{% endif %}" href="{{ url_for('salon') }}">Salón</a>
+            </li>
+          {% endif %}
+
+          {% if 'ver_categorias' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'agregar_categoria' %}active{% endif %}" href="{{ url_for('agregar_categoria') }}">Categoría</a>
+            </li>
+          {% endif %}
+
+          {% if 'ver_productos' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'agregar_producto' %}active{% endif %}" href="{{ url_for('agregar_producto') }}">Producto</a>
+            </li>
+          {% endif %}
+
+          {% if 'ver_usuarios' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'lista_usuarios' %}active{% endif %}" href="{{ url_for('lista_usuarios') }}">Usuarios</a>
+            </li>
+          {% endif %}
+
+          {% if 'ver_ventas' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint.startswith('ventas_en_punto') %}active{% endif %}" href="{{ url_for('ventas_en_punto', mesa=1) }}">Ventas</a>
+            </li>
+          {% endif %}
+
+          {% if 'ver_cocina' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint.startswith('cocina') %}active{% endif %}" href="{{ url_for('cocina') }}">Cocina</a>
+            </li>
+          {% endif %}
+
+          {% if 'ver_domicilios' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'domicilios' %}active{% endif %}" href="{{ url_for('domicilios') }}">Domicilios</a>
+            </li>
+          {% endif %}
+		   {% if 'ver_historial_facturas' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'historial_facturas' %}active{% endif %}" href="{{ url_for('historial_facturas') }}">Historial Facturas</a>
+            </li>
+          {% endif %}
+		  {% if 'ver_historial_facturas' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'historico_cierres' %}active{% endif %}" href="{{ url_for('historico_cierres') }}">Historial Cierres</a>
+            </li>
+          {% endif %}
+
+          {% if 'ver_reportes' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'reportes' %}active{% endif %}" href="{{ url_for('reportes') }}">Reportes</a>
+            </li>
+          {% endif %}
+		  {% if 'ver_gastos' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'gastos' %}active{% endif %}" href="{{ url_for('gastos') }}">Gastos</a>
+            </li>
+          {% endif %}
+
+          {% if 'gestionar_permisos' in session.get('permisos', []) %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'gestionar_permisos' %}active{% endif %}" href="{{ url_for('gestionar_permisos') }}">Permisos</a>
+            </li>
+          {% endif %}
+        {% else %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}" href="{{ url_for('login') }}">Login</a>
           </li>
-          {% endif %}
-        </ul>
-      </div>
-    </div>
-  </nav>
+        {% endif %}
+		
+      </ul>
 
-  <main class="container mt-4">
-    {% block content %}{% endblock %}
-  </main>
-
-  <!-- Toasts -->
-  <div class="toast-container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-        <div class="toast align-items-center text-bg-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'warning' if category == 'warning' else 'primary' }} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
-          <div class="d-flex">
-            <div class="toast-body">
-              {{ message }}
+      {% if session.get('usuario') %}
+        <div class="dropdown ms-auto">
+          <a class="btn btn-outline-light dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle me-2" style="font-size: 1.3rem;"></i>
+            <div class="text-start">
+              <div style="font-size: 0.9rem;"><strong>{{ session['usuario'] }}</strong></div>
+              <div style="font-size: 0.75rem;">Rol: {{ session['rol'] }}</div>
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-          </div>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="{{ url_for('perfil') }}">Ver perfil</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('cambiar_contrasena') }}">Cambiar contraseña</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Cerrar sesión</a></li>
+          </ul>
         </div>
-        {% endfor %}
       {% endif %}
-    {% endwith %}
+    </div>
   </div>
+</nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    document.querySelectorAll('.toast').forEach(toastEl => {
-      new bootstrap.Toast(toastEl).show();
-    });
-  </script>
-  
-   {% block scripts %}{% endblock %}
+<!-- 🖼️ Logo del restaurante -->
+<header class="text-center py-3 border-bottom bg-white shadow-sm">
+  <img src="{{ url_for('static', filename='images/elpunto.jpg') }}"
+       alt="Logo El Punto"
+       class="img-fluid rounded-circle"
+       style="max-width: 160px;">
+</header>
+
+<main class="container mt-4">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Toasts -->
+<div class="toast-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+      <div class="toast align-items-center text-bg-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'warning' if category == 'warning' else 'primary' }} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+        <div class="d-flex">
+          <div class="toast-body">
+            {{ message }}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.querySelectorAll('.toast').forEach(toastEl => {
+    new bootstrap.Toast(toastEl).show();
+  });
+</script>
+
+{% block scripts %}{% endblock %}
 </body>
 </html>

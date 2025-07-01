@@ -1,0 +1,10 @@
+/* static/styles.css */
+
+.hidden {
+  display: none !important;
+}
+
+.tab-btn.active {
+  background-color: #0d6efd;
+  color: white;
+}

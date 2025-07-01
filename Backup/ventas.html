@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}
+Ventas - Mesa {{ mesa }}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <h2 class="mb-4">Mesa {{ mesa }} - Ventas</h2>
+
+  <!-- Estado del salón -->
+  <h4 class="mb-3">Estado del Salón</h4>
+  <div class="d-flex flex-wrap gap-3 mb-4">
+    {% for m in mesas %}
+      <a href="{{ url_for('ventas_en_punto', mesa=m) }}" style="text-decoration: none;">
+        <div class="mesa-cuadro"
+             style="width: 70px; height: 70px; background-color: {% if estado_mesas[m] == 'ocupada' %}#dc3545{% else %}#28a745{% endif %};
+                    color: white; display: flex; align-items: center; justify-content: center; border-radius: 10px;
+                    font-weight: bold; font-size: 20px; box-shadow: 0 0 8px rgba(0,0,0,0.2);
+                    transition: transform 0.2s;
+                    {% if m == mesa %} outline: 3px solid #ffc107; box-shadow: 0 0 15px #ffc107; {% endif %} "
+             onmouseover="this.style.transform='scale(1.05)'"
+             onmouseout="this.style.transform='scale(1)'">
+          {{ m }}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="row">
+
+    <!-- CATEGORÍAS como botones -->
+    <div class="col-12 mb-3">
+      <div id="botones-categorias" class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-primary categoria-btn active" data-categoria="Todas">Todas</button>
+        {% for categoria in categorias.keys() %}
+        <button class="btn btn-outline-primary categoria-btn" data-categoria="{{ categoria }}">{{ categoria }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Productos -->
+    <div class="col-md-8">
+      {% for categoria, productos in categorias.items() %}
+      <div class="productos-categoria" data-categoria="{{ categoria }}" style="display:none;">
+        <div class="row">
+          {% for producto in productos %}
+          <div class="col-6 col-md-4 mb-4">
+            <div class="producto card shadow-sm text-center p-3" data-nombre="{{ producto.nombre }}" data-precio="{{ producto.precio }}">
+              <img src="{{ url_for('static', filename='images/' + producto.imagen) }}" class="card-img-top mx-auto d-block" alt="{{ producto.nombre }}" style="height: 120px; object-fit: contain;">
+              <div class="card-body p-2 d-flex flex-column align-items-center">
+                <h5 class="card-title mb-2" style="font-size: 1.1rem; white-space: normal; overflow-wrap: break-word; max-height: 3.3em;">{{ producto.nombre }}</h5>
+                <p class="card-text text-success fw-bold mb-3" style="font-size: 1rem;">$ {{ '{:,.0f}'.format(producto.precio) }}</p>
+                <div class="d-flex justify-content-center align-items-center gap-1">
+                  <button type="button" class="btn btn-outline-danger btn-sm btn-restar rounded-circle">-</button>
+                  <input type="text" class="cantidad-input form-control text-center" value="0" readonly style="width: 45px;" />
+                  <button type="button" class="btn btn-outline-success btn-sm btn-sumar rounded-circle">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Mostrar todas las categorías juntas cuando se elija "Todas" -->
+      <div class="productos-categoria" data-categoria="Todas" style="display:block;">
+        {% for categoria, productos in categorias.items() %}
+        <h3 class="categoria-titulo">{{ categoria }}</h3>
+        <div class="row">
+          {% for producto in productos %}
+          <div class="col-6 col-md-4 mb-4">
+            <div class="producto card shadow-sm text-center p-3" data-nombre="{{ producto.nombre }}" data-precio="{{ producto.precio }}">
+              <img src="{{ url_for('static', filename='images/' + producto.imagen) }}" class="card-img-top mx-auto d-block" alt="{{ producto.nombre }}" style="height: 120px; object-fit: contain;">
+              <div class="card-body p-2 d-flex flex-column align-items-center">
+                <h5 class="card-title mb-2" style="font-size: 1.1rem; white-space: normal; overflow-wrap: break-word; max-height: 3.3em;">{{ producto.nombre }}</h5>
+                <p class="card-text text-success fw-bold mb-3" style="font-size: 1rem;">$ {{ '{:,.0f}'.format(producto.precio) }}</p>
+                <div class="d-flex justify-content-center align-items-center gap-1">
+                  <button type="button" class="btn btn-outline-danger btn-sm btn-restar rounded-circle">-</button>
+                  <input type="text" class="cantidad-input form-control text-center" value="0" readonly style="width: 45px;" />
+                  <button type="button" class="btn btn-outline-success btn-sm btn-sumar rounded-circle">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="col-md-4">
+      <h3>Resumen del pedido</h3>
+      <div class="resumen-pedido border rounded bg-white p-3 mb-3" style="max-height: 350px; overflow-y: auto;">
+        <ul id="lista-pedido" class="list-group"></ul>
+      </div>
+      <h4>
+        Total: $ <span id="total-pedido">0</span>
+        <button type="button" id="btn-total" class="btn btn-success btn-sm ms-2" disabled data-bs-toggle="modal" data-bs-target="#modalAcciones">Total</button>
+      </h4>
+      <div id="total-ventas-container" class="alert alert-info text-center mt-2">
+        Total Vendido Hoy: $<span id="total-ventas-hoy">0</span>
+      </div>
+
+      <form method="POST" action="{{ url_for('cerrar_caja') }}">
+        <button type="submit" class="btn btn-warning">🧾 Cerrar Caja</button>
+      </form>
+
+      <!-- FORMULARIO para enviar pedido -->
+      <form method="POST" action="{{ url_for('ventas_en_punto', mesa=mesa) }}" id="form-pedido">
+        <input type="hidden" name="mesa" value="{{ mesa }}" />
+        <input type="hidden" name="productos" id="productos-seleccionados" />
+        <button type="submit" class="btn btn-primary mt-2" id="enviar-pedido" disabled>Enviar Pedido</button>
+      </form>
+
+      <a href="{{ url_for('comanda_pdf', mesa=mesa) }}" target="_blank" class="btn btn-danger mt-2">🧾 Imprimir Comanda</a>
+    </div>
+
+  </div>
+
+  <div class="mt-4">
+    <a href="{{ url_for('salon') }}" class="btn btn-secondary">Volver al Salón</a>
+  </div>
+</div>
+
+<!-- Modal Acciones -->
+<div class="modal fade" id="modalAcciones" tabindex="-1" aria-labelledby="modalAccionesLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAccionesLabel">Acciones Pedido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Qué deseas hacer con el pedido?</p>
+        <div class="d-grid gap-2">
+          <button type="button" id="btn-imprimir-comanda" class="btn btn-danger" data-bs-dismiss="modal">Imprimir Factura</button>
+
+          <!-- Formulario para facturar -->
+          <form method="POST" action="{{ url_for('facturar_pedido') }}" id="form-facturar">
+            <input type="hidden" name="mesa" value="{{ mesa }}">
+            <input type="hidden" name="productos" id="productos-facturar" />
+            <button type="submit" class="btn btn-success" id="btn-facturar">Facturar Pedido</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts para mensajes -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+  <div id="toast-success" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">Acción completada con éxito.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+    </div>
+  </div>
+  <div id="toast-error" class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">Ha ocurrido un error. Intenta de nuevo.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .producto:hover {
+    box-shadow: 0 0 12px rgba(0, 123, 255, 0.7);
+    cursor: pointer;
+  }
+  .categoria-titulo {
+    font-weight: 700;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const productosData = {};
+
+  // Construir diccionario para productos con cantidad inicial (0)
+  document.querySelectorAll('.producto').forEach(p => {
+    const nombre = p.dataset.nombre;
+    const precio = parseFloat(p.dataset.precio);
+    productosData[nombre] = { precio, cantidad: 0 };
+  });
+
+  const listaPedido = document.getElementById('lista-pedido');
+  const totalPedidoElem = document.getElementById('total-pedido');
+  const btnEnviarPedido = document.getElementById('enviar-pedido');
+  const inputProductosSeleccionados = document.getElementById('productos-seleccionados');
+  const totalVentasHoyElem = document.getElementById('total-ventas-hoy');
+  const btnFacturarProductos = document.getElementById('productos-facturar');
+
+  // Mostrar total ventas hoy (formateado)
+  totalVentasHoyElem.textContent = "{{ '{:,.0f}'.format(total_vendido_hoy) }}";
+
+  // Función para actualizar el resumen y botones
+  function actualizarResumen() {
+    listaPedido.innerHTML = '';
+    let total = 0;
+    let totalCantidad = 0;
+    for (const [nombre, info] of Object.entries(productosData)) {
+      if (info.cantidad > 0) {
+        const subtotal = info.precio * info.cantidad;
+        total += subtotal;
+        totalCantidad += info.cantidad;
+
+        const li = document.createElement('li');
+        li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+        li.textContent = `${nombre} x ${info.cantidad}`;
+        const spanPrecio = document.createElement('span');
+        spanPrecio.textContent = `$ ${subtotal.toLocaleString()}`;
+        li.appendChild(spanPrecio);
+        listaPedido.appendChild(li);
+      }
+    }
+    totalPedidoElem.textContent = total.toLocaleString();
+
+    // Habilitar botón enviar solo si hay productos seleccionados
+    btnEnviarPedido.disabled = totalCantidad === 0;
+
+    // Preparar JSON para enviar al backend
+    const productosParaEnviar = {};
+    for (const [nombre, info] of Object.entries(productosData)) {
+      if (info.cantidad > 0) {
+        productosParaEnviar[nombre] = info.cantidad;
+      }
+    }
+    inputProductosSeleccionados.value = JSON.stringify(productosParaEnviar);
+    btnFacturarProductos.value = JSON.stringify(productosParaEnviar);
+  }
+
+  // Botones sumar/restar
+  document.querySelectorAll('.producto').forEach(p => {
+    const btnSumar = p.querySelector('.btn-sumar');
+    const btnRestar = p.querySelector('.btn-restar');
+    const inputCantidad = p.querySelector('.cantidad-input');
+    const nombre = p.dataset.nombre;
+
+    btnSumar.addEventListener('click', () => {
+      productosData[nombre].cantidad++;
+      inputCantidad.value = productosData[nombre].cantidad;
+      actualizarResumen();
+    });
+
+    btnRestar.addEventListener('click', () => {
+      if (productosData[nombre].cantidad > 0) {
+        productosData[nombre].cantidad--;
+        inputCantidad.value = productosData[nombre].cantidad;
+        actualizarResumen();
+      }
+    });
+  });
+
+  // Filtro categorías
+  const btnCategorias = document.querySelectorAll('.categoria-btn');
+  const contenedoresProductos = document.querySelectorAll('.productos-categoria');
+
+  btnCategorias.forEach(btn => {
+    btn.addEventListener('click', () => {
+      btnCategorias.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const categoriaSeleccionada = btn.dataset.categoria;
+
+      contenedoresProductos.forEach(cont => {
+        cont.style.display = (categoriaSeleccionada === 'Todas' || cont.dataset.categoria === categoriaSeleccionada)
+          ? 'block'
+          : 'none';
+      });
+    });
+  });
+
+  // Botón imprimir comanda
+  document.getElementById('btn-imprimir-comanda').addEventListener('click', () => {
+    window.open("{{ url_for('comanda_pdf', mesa=mesa) }}", "_blank");
+  });
+
+  // Si quieres mostrar pedidos guardados pre-cargados, puedes integrar lógica aquí
+  // por ejemplo, recorrer pedidos_guardados y setear cantidades iniciales.
+
+  actualizarResumen();
+});
+</script>
+{% endblock %}
