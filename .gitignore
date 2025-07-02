@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+instance/
+.mypy_cache/
+.machinery/
+migrations/versions/__pycache__/
