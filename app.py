@@ -28,10 +28,6 @@ from reportlab.lib.units import inch
 
 
 
-
-
-
-
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta'
 
@@ -2095,21 +2091,21 @@ def restaurar_admin():
 #    db.session.commit()
 #    return f'Se crearon {creados} permisos nuevos correctamente.'
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-
-        # Asignar todos los permisos al rol Administrador
-        admin_rol = Rol.query.filter_by(nombre='Administrador').first()
-        if admin_rol:
-            todos_los_permisos = Permiso.query.all()
-            permisos_actuales = {rp.permiso_id for rp in RolPermiso.query.filter_by(rol_id=admin_rol.id).all()}
-            nuevos_permisos = [p for p in todos_los_permisos if p.id not in permisos_actuales]
-            for permiso in nuevos_permisos:
-                db.session.add(RolPermiso(rol_id=admin_rol.id, permiso_id=permiso.id))
-            if nuevos_permisos:
-                db.session.commit()
-                print(f"Permisos actualizados para el rol Administrador")
-    app.run(debug=True)
+#if __name__ == '__main__':
+#    with app.app_context():
+#        db.create_all()
+#
+#        # Asignar todos los permisos al rol Administrador
+#        admin_rol = Rol.query.filter_by(nombre='Administrador').first()
+#        if admin_rol:
+#            todos_los_permisos = Permiso.query.all()
+#            permisos_actuales = {rp.permiso_id for rp in RolPermiso.query.filter_by(rol_id=admin_rol.id).all()}
+#            nuevos_permisos = [p for p in todos_los_permisos if p.id not in permisos_actuales]
+#            for permiso in nuevos_permisos:
+#                db.session.add(RolPermiso(rol_id=admin_rol.id, permiso_id=permiso.id))
+#            if nuevos_permisos:
+#                db.session.commit()
+#                print(f"Permisos actualizados para el rol Administrador")
+#    app.run(debug=True)
 
 
