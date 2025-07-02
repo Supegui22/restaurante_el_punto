@@ -2076,6 +2076,13 @@ def restaurar_admin():
             db.session.add(RolPermiso(rol_id=admin.id, permiso_id=permiso.id))
     db.session.commit()
     return "Permisos restaurados al Admin"
+
+@app.before_first_request
+def ejecutar_datos_iniciales_si_no_hay_usuarios():
+    from models import Usuario
+    if not Usuario.query.first():
+        print("⚙ Ejecutando creación de datos iniciales (usuarios, roles, permisos)...")
+        crear_datos_iniciales()
  
 #@app.route('/crear_permisos_base')
 #def crear_permisos_base():
