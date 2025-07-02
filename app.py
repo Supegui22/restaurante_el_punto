@@ -9,7 +9,7 @@ import pytz
 from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages, make_response, jsonify, send_file
 from extensions import db
 import models
-from models import db, Usuario, Rol, RolPermiso, Permiso, Pedido, DetallePedido, CierreCaja, Producto, Categoria, Gasto # Asegúrate que estén definidos
+from models import Usuario, Rol, RolPermiso, Permiso, Pedido, DetallePedido, CierreCaja, Producto, Categoria, Gasto # Asegúrate que estén definidos
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import func, and_
 from io import BytesIO
@@ -2083,6 +2083,17 @@ def ejecutar_datos_iniciales_si_no_hay_usuarios():
     if not Usuario.query.first():
         print("⚙ Ejecutando creación de datos iniciales (usuarios, roles, permisos)...")
         crear_datos_iniciales()
+ 
+# Ejecutar automáticamente crear_datos_iniciales en Render si no hay usuarios
+with app.app_context():
+    from models import Usuario
+    if not Usuario.query.filter_by(correo='admin@example.com').first():
+        try:
+            crear_datos_iniciales()
+            print("✔ Usuarios y permisos creados automáticamente en Render")
+        except Exception as e:
+            print(f"❌ Error creando usuarios iniciales: {e}")
+ 
  
 #@app.route('/crear_permisos_base')
 #def crear_permisos_base():
