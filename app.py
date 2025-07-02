@@ -2077,12 +2077,6 @@ def restaurar_admin():
     db.session.commit()
     return "Permisos restaurados al Admin"
 
-@app.before_first_request
-def ejecutar_datos_iniciales_si_no_hay_usuarios():
-    from models import Usuario
-    if not Usuario.query.first():
-        print("⚙ Ejecutando creación de datos iniciales (usuarios, roles, permisos)...")
-        crear_datos_iniciales()
  
 # Ejecutar automáticamente crear_datos_iniciales en Render si no hay usuarios
 with app.app_context():
