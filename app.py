@@ -33,8 +33,12 @@ app.secret_key = 'tu_clave_secreta'
 
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'images')
 
-# Configuración DB
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ventas.db'
+# Configuración de la base de datos
+if 'DATABASE_URL' in os.environ:
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ventas.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Inicializar extensiones
