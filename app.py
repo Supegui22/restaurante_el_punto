@@ -2078,8 +2078,8 @@ def restaurar_admin():
     return "Permisos restaurados al Admin"
 
  
-# Ejecutar automáticamente crear_datos_iniciales en Render si no hay usuarios
-with app.app_context():
+@app.before_first_request
+def ejecutar_datos_iniciales_si_faltan():
     from models import Usuario
     if not Usuario.query.filter_by(correo='admin@example.com').first():
         try:
@@ -2087,6 +2087,7 @@ with app.app_context():
             print("✔ Usuarios y permisos creados automáticamente en Render")
         except Exception as e:
             print(f"❌ Error creando usuarios iniciales: {e}")
+
  
  
 #@app.route('/crear_permisos_base')
