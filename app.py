@@ -2080,13 +2080,16 @@ def restaurar_admin():
  
 # Ejecutar automáticamente crear_datos_iniciales en Render si no hay usuarios
 with app.app_context():
-    from models import Usuario
-    if not Usuario.query.filter_by(correo='admin@example.com').first():
-        try:
-            crear_datos_iniciales()
-            print("✔ Usuarios y permisos creados automáticamente en Render")
-        except Exception as e:
-            print(f"❌ Error creando usuarios iniciales: {e}")
+    from models import db, Usuario
+    try:
+        Usuario.query.filter(Usuario.correo.in_(['admin@example.com', 'domiciliario@example.com'])).delete(synchronize_session=False)
+        db.session.commit()
+        crear_datos_iniciales()
+        print("✔ Usuarios recreados automáticamente en Render")
+    except Exception as e:
+        print(f"❌ Error recreando usuarios: {e}")
+
+
 
 
  
